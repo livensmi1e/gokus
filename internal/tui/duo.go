@@ -14,7 +14,7 @@ type DouModel struct {
 
 func NewDuoModel() *DouModel {
 	return &DouModel{
-		game: blokus.NewDouGame(),
+		game: blokus.NewDuoGame(),
 	}
 }
 

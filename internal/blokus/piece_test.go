@@ -8,39 +8,39 @@ import (
 func TestNormalize_Table(t *testing.T) {
 	tt := []struct {
 		name  string
-		input Piece
-		want  []Coordinate
+		input piece
+		want  []coordinate
 	}{
 		{
 			name: "L shape shifted",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{2, 3}, {2, 4}, {3, 4},
 				},
 			},
-			want: []Coordinate{
+			want: []coordinate{
 				{0, 0}, {0, 1}, {1, 1},
 			},
 		},
 		{
 			name: "line shifted",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{5, 5}, {6, 5}, {7, 5},
 				},
 			},
-			want: []Coordinate{
+			want: []coordinate{
 				{0, 0}, {1, 0}, {2, 0},
 			},
 		},
 		{
 			name: "single cell",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{10, 10},
 				},
 			},
-			want: []Coordinate{
+			want: []coordinate{
 				{0, 0},
 			},
 		},
@@ -49,10 +49,10 @@ func TestNormalize_Table(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.input
-			p.Normalize()
+			p.normalize()
 
-			if !reflect.DeepEqual(p.Cells, tc.want) {
-				t.Errorf("Normalize failed.\nGot: %v\nWant: %v", p.Cells, tc.want)
+			if !reflect.DeepEqual(p.cells, tc.want) {
+				t.Errorf("Normalize failed.\nGot: %v\nWant: %v", p.cells, tc.want)
 			}
 		})
 	}
@@ -61,28 +61,28 @@ func TestNormalize_Table(t *testing.T) {
 func TestRotate_Table(t *testing.T) {
 	tt := []struct {
 		name  string
-		input Piece
-		want  []Coordinate
+		input piece
+		want  []coordinate
 	}{
 		{
 			name: "L shape",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{0, 0}, {0, 1}, {1, 1},
 				},
 			},
-			want: []Coordinate{
+			want: []coordinate{
 				{0, 0}, {0, 1}, {1, 0},
 			},
 		},
 		{
 			name: "line vertical -> horizontal",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{0, 0}, {0, 1}, {0, 2},
 				},
 			},
-			want: []Coordinate{
+			want: []coordinate{
 				{0, 0}, {1, 0}, {2, 0},
 			},
 		},
@@ -90,10 +90,10 @@ func TestRotate_Table(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.input
-			p.Rotate()
-			p.Normalize()
-			if !reflect.DeepEqual(p.Cells, tc.want) {
-				t.Errorf("Rotate failed.\nGot: %v\nWant: %v", p.Cells, tc.want)
+			p.rotate()
+			p.normalize()
+			if !reflect.DeepEqual(p.cells, tc.want) {
+				t.Errorf("Rotate failed.\nGot: %v\nWant: %v", p.cells, tc.want)
 			}
 		})
 	}
@@ -102,19 +102,19 @@ func TestRotate_Table(t *testing.T) {
 func TestFlip_Table(t *testing.T) {
 	tt := []struct {
 		name  string
-		input Piece
-		want  []Coordinate
+		input piece
+		want  []coordinate
 	}{
 		{
 			name: "basic L flip",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{0, 0},
 					{1, 0},
 					{1, 1},
 				},
 			},
-			want: []Coordinate{
+			want: []coordinate{
 				{0, 0},
 				{0, 1},
 				{1, 0},
@@ -124,10 +124,10 @@ func TestFlip_Table(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.input
-			p.Flip()
-			p.Normalize()
-			if !reflect.DeepEqual(p.Cells, tc.want) {
-				t.Errorf("Flip failed.\nGot: %v\nWant: %v", p.Cells, tc.want)
+			p.flip()
+			p.normalize()
+			if !reflect.DeepEqual(p.cells, tc.want) {
+				t.Errorf("Flip failed.\nGot: %v\nWant: %v", p.cells, tc.want)
 			}
 		})
 	}
@@ -136,20 +136,20 @@ func TestFlip_Table(t *testing.T) {
 func TestRotate4TimesReturnsOriginal_Table(t *testing.T) {
 	tt := []struct {
 		name     string
-		input    Piece
-		expected Piece
+		input    piece
+		expected piece
 	}{
 		{
 			name: "rotate 4 times returns original L shape",
-			input: Piece{
-				Cells: []Coordinate{
+			input: piece{
+				cells: []coordinate{
 					{0, 0},
 					{1, 0},
 					{1, 1},
 				},
 			},
-			expected: Piece{
-				Cells: []Coordinate{
+			expected: piece{
+				cells: []coordinate{
 					{0, 0},
 					{1, 0},
 					{1, 1},
@@ -161,8 +161,8 @@ func TestRotate4TimesReturnsOriginal_Table(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.input
 			for i := 0; i < 4; i++ {
-				p.Rotate()
-				p.Normalize()
+				p.rotate()
+				p.normalize()
 			}
 			if !reflect.DeepEqual(p, tc.expected) {
 				t.Errorf("Rotate 4 times failed.\nGot: %v\nWant: %v", p, tc.expected)

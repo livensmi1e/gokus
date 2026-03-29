@@ -5,50 +5,50 @@ import (
 	"slices"
 )
 
-type Coordinate struct {
-	X, Y int
+type coordinate struct {
+	x, y int
 }
 
-type Piece struct {
-	Id    int
-	Cells []Coordinate
+type piece struct {
+	id    int
+	cells []coordinate
 }
 
 // Rotate 90 degree clockwise
 // Need to call Normalize afterwards
-func (p *Piece) Rotate() {
-	for i := range p.Cells {
-		c := &p.Cells[i]
-		c.X, c.Y = -c.Y, c.X
+func (p *piece) rotate() {
+	for i := range p.cells {
+		c := &p.cells[i]
+		c.x, c.y = -c.y, c.x
 	}
 }
 
 // Flip along the Y axis
 // Need to call Normalize afterwards
-func (p *Piece) Flip() {
-	for i := range p.Cells {
-		c := &p.Cells[i]
-		c.X = -c.X
+func (p *piece) flip() {
+	for i := range p.cells {
+		c := &p.cells[i]
+		c.x = -c.x
 	}
 }
 
 // Normalize first makes sure all coordinates are non negative
 // Then it sorts by X first and by Y to compare to coordinates
-func (p *Piece) Normalize() {
+func (p *piece) normalize() {
 	minX, minY := math.MaxInt32, math.MaxInt32
-	for _, c := range p.Cells {
-		minX = min(minX, c.X)
-		minY = min(minY, c.Y)
+	for _, c := range p.cells {
+		minX = min(minX, c.x)
+		minY = min(minY, c.y)
 	}
-	for i := range p.Cells {
-		c := &p.Cells[i]
-		c.X -= minX
-		c.Y -= minY
+	for i := range p.cells {
+		c := &p.cells[i]
+		c.x -= minX
+		c.y -= minY
 	}
-	slices.SortFunc(p.Cells, func(a, b Coordinate) int {
-		if a.X == b.X {
-			return a.Y - b.Y
+	slices.SortFunc(p.cells, func(a, b coordinate) int {
+		if a.x == b.x {
+			return a.y - b.y
 		}
-		return a.X - b.X
+		return a.x - b.x
 	})
 }

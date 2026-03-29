@@ -8,19 +8,19 @@ const (
 	Player2
 )
 
-type Board struct {
-	Size int
-	Grid [][]Occupant
+type board struct {
+	size int
+	grid [][]Occupant
 }
 
-func NewBoard(size int) *Board {
+func newBoard(size int) *board {
 	grid := make([][]Occupant, size)
 	for i := range grid {
 		grid[i] = make([]Occupant, size)
 	}
-	return &Board{Size: size, Grid: grid}
+	return &board{size: size, grid: grid}
 }
 
-func (b Board) Get(c Coordinate) Occupant {
-	return b.Grid[c.Y][c.X]
+func (b *board) get(c coordinate) Occupant {
+	return b.grid[c.y][c.x]
 }
