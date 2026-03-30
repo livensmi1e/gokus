@@ -36,7 +36,6 @@ func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
 		return false
 	}
 	touchedCorner := false
-	touchedEdge := false
 	coveredStartPoint := false
 	for _, cell := range piece.cells {
 		target := coordinate{c.x + cell.x, c.y + cell.y}
@@ -58,8 +57,7 @@ func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
 			g.board.get(coordinate{target.x + 1, target.y}) == g.currentPlayer ||
 			g.board.get(coordinate{target.x, target.y - 1}) == g.currentPlayer ||
 			g.board.get(coordinate{target.x, target.y + 1}) == g.currentPlayer {
-			touchedEdge = true
-			break
+			return false
 		}
 		if g.board.get(coordinate{target.x - 1, target.y - 1}) == g.currentPlayer ||
 			g.board.get(coordinate{target.x + 1, target.y - 1}) == g.currentPlayer ||
@@ -71,7 +69,7 @@ func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
 	if !player.started {
 		return coveredStartPoint
 	}
-	return touchedCorner && !touchedEdge
+	return touchedCorner
 }
 
 func (g *DuoGame) PlacePiece(id int, c coordinate) bool {
@@ -91,6 +89,15 @@ func (g *DuoGame) PlacePiece(id int, c coordinate) bool {
 		player.started = true
 	}
 	g.turnPlayer()
+	return true
+}
+
+func (g *DuoGame) IsOver() bool {
+	for _, p := range g.players {
+		if !p.stopped {
+			return false
+		}
+	}
 	return true
 }
 
