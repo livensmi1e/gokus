@@ -9,38 +9,38 @@ func TestNormalize_Table(t *testing.T) {
 	tt := []struct {
 		name  string
 		input piece
-		want  []coordinate
+		want  []Coordinate
 	}{
 		{
 			name: "L shape shifted",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{2, 3}, {2, 4}, {3, 4},
 				},
 			},
-			want: []coordinate{
+			want: []Coordinate{
 				{0, 0}, {0, 1}, {1, 1},
 			},
 		},
 		{
 			name: "line shifted",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{5, 5}, {6, 5}, {7, 5},
 				},
 			},
-			want: []coordinate{
+			want: []Coordinate{
 				{0, 0}, {1, 0}, {2, 0},
 			},
 		},
 		{
 			name: "single cell",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{10, 10},
 				},
 			},
-			want: []coordinate{
+			want: []Coordinate{
 				{0, 0},
 			},
 		},
@@ -62,27 +62,27 @@ func TestRotate_Table(t *testing.T) {
 	tt := []struct {
 		name  string
 		input piece
-		want  []coordinate
+		want  []Coordinate
 	}{
 		{
 			name: "L shape",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{0, 0}, {0, 1}, {1, 1},
 				},
 			},
-			want: []coordinate{
+			want: []Coordinate{
 				{0, 0}, {0, 1}, {1, 0},
 			},
 		},
 		{
 			name: "line vertical -> horizontal",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{0, 0}, {0, 1}, {0, 2},
 				},
 			},
-			want: []coordinate{
+			want: []Coordinate{
 				{0, 0}, {1, 0}, {2, 0},
 			},
 		},
@@ -103,18 +103,18 @@ func TestFlip_Table(t *testing.T) {
 	tt := []struct {
 		name  string
 		input piece
-		want  []coordinate
+		want  []Coordinate
 	}{
 		{
 			name: "basic L flip",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{0, 0},
 					{1, 0},
 					{1, 1},
 				},
 			},
-			want: []coordinate{
+			want: []Coordinate{
 				{0, 0},
 				{0, 1},
 				{1, 0},
@@ -142,14 +142,14 @@ func TestRotate4TimesReturnsOriginal_Table(t *testing.T) {
 		{
 			name: "rotate 4 times returns original L shape",
 			input: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{0, 0},
 					{1, 0},
 					{1, 1},
 				},
 			},
 			expected: piece{
-				cells: []coordinate{
+				cells: []Coordinate{
 					{0, 0},
 					{1, 0},
 					{1, 1},

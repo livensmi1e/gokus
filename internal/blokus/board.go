@@ -21,13 +21,13 @@ func newBoard(size int) *board {
 	return &board{size: size, grid: grid}
 }
 
-func (b *board) get(c coordinate) Occupant {
+func (b *board) get(c Coordinate) Occupant {
 	if !b.isWithinBounds(c) {
 		return Empty
 	}
 	return b.grid[c.y][c.x]
 }
 
-func (b *board) isWithinBounds(c coordinate) bool {
+func (b *board) isWithinBounds(c Coordinate) bool {
 	return c.x >= 0 && c.x < b.size && c.y >= 0 && c.y < b.size
 }

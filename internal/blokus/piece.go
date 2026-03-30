@@ -5,13 +5,13 @@ import (
 	"slices"
 )
 
-type coordinate struct {
+type Coordinate struct {
 	x, y int
 }
 
 type piece struct {
 	id    int
-	cells []coordinate
+	cells []Coordinate
 }
 
 // Rotate 90 degree clockwise
@@ -32,8 +32,8 @@ func (p *piece) flip() {
 	}
 }
 
-// Normalize first makes sure all coordinates are non negative
-// Then it sorts by X first and by Y to compare to coordinates
+// Normalize first makes sure all Coordinates are non negative
+// Then it sorts by X first and by Y to compare to Coordinates
 func (p *piece) normalize() {
 	minX, minY := math.MaxInt32, math.MaxInt32
 	for _, c := range p.cells {
@@ -45,7 +45,7 @@ func (p *piece) normalize() {
 		c.x -= minX
 		c.y -= minY
 	}
-	slices.SortFunc(p.cells, func(a, b coordinate) int {
+	slices.SortFunc(p.cells, func(a, b Coordinate) int {
 		if a.x == b.x {
 			return a.y - b.y
 		}
@@ -56,31 +56,31 @@ func (p *piece) normalize() {
 func getPiecesAtStart() []*piece {
 	pieces := []*piece{
 		// 1 Monomino
-		{id: 0, cells: []coordinate{{0, 0}}},
+		{id: 0, cells: []Coordinate{{0, 0}}},
 		// 1 Domino
-		{id: 1, cells: []coordinate{{0, 0}, {1, 0}}},
+		{id: 1, cells: []Coordinate{{0, 0}, {1, 0}}},
 		// 2 Trominoes
-		{id: 2, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}}},
-		{id: 3, cells: []coordinate{{0, 0}, {1, 0}, {0, 1}}},
+		{id: 2, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}}},
+		{id: 3, cells: []Coordinate{{0, 0}, {1, 0}, {0, 1}}},
 		// 5 Tetrominoes
-		{id: 4, cells: []coordinate{{0, 0}, {1, 0}, {0, 1}, {1, 1}}},
-		{id: 5, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {1, 1}}},
-		{id: 6, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {0, 1}}},
-		{id: 7, cells: []coordinate{{0, 0}, {1, 0}, {1, 1}, {2, 1}}},
-		{id: 8, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}}},
+		{id: 4, cells: []Coordinate{{0, 0}, {1, 0}, {0, 1}, {1, 1}}},
+		{id: 5, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {1, 1}}},
+		{id: 6, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {0, 1}}},
+		{id: 7, cells: []Coordinate{{0, 0}, {1, 0}, {1, 1}, {2, 1}}},
+		{id: 8, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}}},
 		// 12 Pentominoes
-		{id: 9, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}}},
-		{id: 10, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 1}}},
-		{id: 11, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {1, 1}}},
-		{id: 12, cells: []coordinate{{0, 0}, {1, 0}, {1, 1}, {2, 1}, {3, 1}}},
-		{id: 13, cells: []coordinate{{0, 0}, {1, 0}, {0, 1}, {1, 1}, {0, 2}}},
-		{id: 14, cells: []coordinate{{0, 0}, {2, 0}, {0, 1}, {1, 1}, {2, 1}}},
-		{id: 15, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, 2}}},
-		{id: 16, cells: []coordinate{{0, 0}, {0, 1}, {1, 1}, {1, 2}, {2, 2}}},
-		{id: 17, cells: []coordinate{{0, 0}, {1, 0}, {1, 1}, {1, 2}, {2, 2}}},
-		{id: 18, cells: []coordinate{{1, 0}, {2, 0}, {0, 1}, {1, 1}, {1, 2}}},
-		{id: 19, cells: []coordinate{{1, 0}, {0, 1}, {1, 1}, {2, 1}, {1, 2}}},
-		{id: 20, cells: []coordinate{{0, 0}, {1, 0}, {2, 0}, {1, 1}, {1, 2}}},
+		{id: 9, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}}},
+		{id: 10, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 1}}},
+		{id: 11, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {1, 1}}},
+		{id: 12, cells: []Coordinate{{0, 0}, {1, 0}, {1, 1}, {2, 1}, {3, 1}}},
+		{id: 13, cells: []Coordinate{{0, 0}, {1, 0}, {0, 1}, {1, 1}, {0, 2}}},
+		{id: 14, cells: []Coordinate{{0, 0}, {2, 0}, {0, 1}, {1, 1}, {2, 1}}},
+		{id: 15, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, 2}}},
+		{id: 16, cells: []Coordinate{{0, 0}, {0, 1}, {1, 1}, {1, 2}, {2, 2}}},
+		{id: 17, cells: []Coordinate{{0, 0}, {1, 0}, {1, 1}, {1, 2}, {2, 2}}},
+		{id: 18, cells: []Coordinate{{1, 0}, {2, 0}, {0, 1}, {1, 1}, {1, 2}}},
+		{id: 19, cells: []Coordinate{{1, 0}, {0, 1}, {1, 1}, {2, 1}, {1, 2}}},
+		{id: 20, cells: []Coordinate{{0, 0}, {1, 0}, {2, 0}, {1, 1}, {1, 2}}},
 	}
 	for _, p := range pieces {
 		p.normalize()

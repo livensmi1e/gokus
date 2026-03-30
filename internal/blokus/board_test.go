@@ -6,7 +6,7 @@ func TestBoard_Get_WithinBounds(t *testing.T) {
 	b := newBoard(3)
 	for y := 0; y < 3; y++ {
 		for x := 0; x < 3; x++ {
-			got := b.get(coordinate{x, y})
+			got := b.get(Coordinate{x, y})
 			if got != Empty {
 				t.Errorf("expected Empty at (%d,%d), got %v", x, y, got)
 			}
@@ -16,7 +16,7 @@ func TestBoard_Get_WithinBounds(t *testing.T) {
 
 func TestBoard_Get_OutOfBounds(t *testing.T) {
 	b := newBoard(3)
-	tests := []coordinate{
+	tests := []Coordinate{
 		{-1, 0},
 		{0, -1},
 		{3, 0},
@@ -35,17 +35,17 @@ func TestBoard_Get_OutOfBounds(t *testing.T) {
 func TestBoard_IsWithinBounds(t *testing.T) {
 	b := newBoard(3)
 	tests := []struct {
-		c    coordinate
+		c    Coordinate
 		want bool
 	}{
-		{coordinate{0, 0}, true},
-		{coordinate{2, 2}, true},
-		{coordinate{1, 1}, true},
-		{coordinate{-1, 0}, false},
-		{coordinate{0, -1}, false},
-		{coordinate{3, 0}, false},
-		{coordinate{0, 3}, false},
-		{coordinate{100, 100}, false},
+		{Coordinate{0, 0}, true},
+		{Coordinate{2, 2}, true},
+		{Coordinate{1, 1}, true},
+		{Coordinate{-1, 0}, false},
+		{Coordinate{0, -1}, false},
+		{Coordinate{3, 0}, false},
+		{Coordinate{0, 3}, false},
+		{Coordinate{100, 100}, false},
 	}
 	for _, tt := range tests {
 		got := b.isWithinBounds(tt.c)

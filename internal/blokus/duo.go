@@ -2,7 +2,7 @@ package blokus
 
 const DUO_BOARD_SIZE = 14
 
-var STARTING_POINTS = []coordinate{
+var STARTING_POINTS = []Coordinate{
 	{4, 4},
 	{DUO_BOARD_SIZE - 5, DUO_BOARD_SIZE - 5},
 }
@@ -24,12 +24,9 @@ func NewDuoGame() *DuoGame {
 	}
 }
 
-// Valid move
-// Check for inbounds
-// Empty space
-// No edge to edge
-// Must have corner to corner or player's first move
-func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
+// CanPlacePiece checks if a piece can be placed at an particular point on board
+// This is an immutable method
+func (g *DuoGame) CanPlacePiece(id int, c Coordinate) bool {
 	player := g.players[g.currentPlayer]
 	piece, ok := player.getPiece(id)
 	if !ok {
@@ -38,8 +35,8 @@ func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
 	touchedCorner := false
 	coveredStartPoint := false
 	for _, cell := range piece.cells {
-		target := coordinate{c.x + cell.x, c.y + cell.y}
-		// Check if piece can be placed at coordinate c
+		target := Coordinate{c.x + cell.x, c.y + cell.y}
+		// Check if piece can be placed at Coordinate c
 		if !g.board.isWithinBounds(target) || g.board.get(target) != Empty {
 			return false
 		}
@@ -53,16 +50,16 @@ func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
 			}
 		}
 		// Check for edge to edge contact and corner to corner
-		if g.board.get(coordinate{target.x - 1, target.y}) == g.currentPlayer ||
-			g.board.get(coordinate{target.x + 1, target.y}) == g.currentPlayer ||
-			g.board.get(coordinate{target.x, target.y - 1}) == g.currentPlayer ||
-			g.board.get(coordinate{target.x, target.y + 1}) == g.currentPlayer {
+		if g.board.get(Coordinate{target.x - 1, target.y}) == g.currentPlayer ||
+			g.board.get(Coordinate{target.x + 1, target.y}) == g.currentPlayer ||
+			g.board.get(Coordinate{target.x, target.y - 1}) == g.currentPlayer ||
+			g.board.get(Coordinate{target.x, target.y + 1}) == g.currentPlayer {
 			return false
 		}
-		if g.board.get(coordinate{target.x - 1, target.y - 1}) == g.currentPlayer ||
-			g.board.get(coordinate{target.x + 1, target.y - 1}) == g.currentPlayer ||
-			g.board.get(coordinate{target.x - 1, target.y + 1}) == g.currentPlayer ||
-			g.board.get(coordinate{target.x + 1, target.y + 1}) == g.currentPlayer {
+		if g.board.get(Coordinate{target.x - 1, target.y - 1}) == g.currentPlayer ||
+			g.board.get(Coordinate{target.x + 1, target.y - 1}) == g.currentPlayer ||
+			g.board.get(Coordinate{target.x - 1, target.y + 1}) == g.currentPlayer ||
+			g.board.get(Coordinate{target.x + 1, target.y + 1}) == g.currentPlayer {
 			touchedCorner = true
 		}
 	}
@@ -72,7 +69,9 @@ func (g *DuoGame) CanPlacePiece(id int, c coordinate) bool {
 	return touchedCorner
 }
 
-func (g *DuoGame) PlacePiece(id int, c coordinate) bool {
+// PlacePiece places a piece on a point in board
+// This is mutable and changes the game state if the move is valid
+func (g *DuoGame) PlacePiece(id int, c Coordinate) bool {
 	if !g.CanPlacePiece(id, c) {
 		return false
 	}
@@ -82,7 +81,7 @@ func (g *DuoGame) PlacePiece(id int, c coordinate) bool {
 		return false
 	}
 	for _, cell := range piece.cells {
-		target := coordinate{c.x + cell.x, c.y + cell.y}
+		target := Coordinate{c.x + cell.x, c.y + cell.y}
 		g.board.grid[target.y][target.x] = g.currentPlayer
 	}
 	if !player.started {
@@ -92,6 +91,11 @@ func (g *DuoGame) PlacePiece(id int, c coordinate) bool {
 	return true
 }
 
+func (g *DuoGame) SkipTurn() {
+	g.players[g.currentPlayer].stopped = true
+	g.turnPlayer()
+}
+
 func (g *DuoGame) IsOver() bool {
 	for _, p := range g.players {
 		if !p.stopped {
@@ -99,6 +103,54 @@ func (g *DuoGame) IsOver() bool {
 		}
 	}
 	return true
+}
+
+func (g *DuoGame) CurrentPlayer() Occupant {
+	return g.currentPlayer
+}
+
+// Board return an immutable game board
+func (g *DuoGame) Board() [][]Occupant {
+	grid := make([][]Occupant, g.board.size)
+	for i := range g.board.grid {
+		grid[i] = append([]Occupant(nil), g.board.grid[i]...)
+	}
+	return grid
+}
+
+func (g *DuoGame) PiecesLeft(player Occupant) []int {
+	p := g.players[player]
+	var ids []int
+	for i := range p.pieces {
+		if p.hasPiece(i) {
+			ids = append(ids, i)
+		}
+	}
+	return ids
+}
+
+// GetPieceShape return the shape of a piece via coordinate of cells.
+// This is a immutable function
+func (g *DuoGame) GetPieceShape(id int) []Coordinate {
+	pieces := getPiecesAtStart()
+	pc := pieces[id]
+	cells := make([]Coordinate, len(pc.cells))
+	for i, c := range cells {
+		cells[i] = Coordinate{x: c.x, y: c.y}
+	}
+	return cells
+}
+
+func (g *DuoGame) HasStarted(player Occupant) bool {
+	return g.players[player].started
+}
+
+func (g *DuoGame) StartingPoints() []Coordinate {
+	points := make([]Coordinate, len(STARTING_POINTS))
+	for i, p := range STARTING_POINTS {
+		points[i] = Coordinate{p.x, p.y}
+	}
+	return points
 }
 
 func (g *DuoGame) turnPlayer() {
