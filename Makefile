@@ -13,12 +13,6 @@ run: build
 test:
 	go test ./internal/... -v
 
-test-short:
-	go test ./internal/... -v -short
-
-tidy:
-	go mod tidy
-
 fmt:
 	go fmt ./...
 
