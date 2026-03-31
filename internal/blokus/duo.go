@@ -135,7 +135,7 @@ func (g *DuoGame) GetPieceShape(id int) []Coordinate {
 	pieces := getPiecesAtStart()
 	pc := pieces[id]
 	cells := make([]Coordinate, len(pc.cells))
-	for i, c := range cells {
+	for i, c := range pc.cells {
 		cells[i] = Coordinate{x: c.x, y: c.y}
 	}
 	return cells
@@ -151,6 +151,17 @@ func (g *DuoGame) StartingPoints() []Coordinate {
 		points[i] = Coordinate{p.x, p.y}
 	}
 	return points
+}
+
+func (g *DuoGame) Score(player Occupant) int {
+	p := g.players[player]
+	score := 0
+	for i := range p.pieces {
+		if p.hasPiece(i) {
+			score += len(g.GetPieceShape(i))
+		}
+	}
+	return score
 }
 
 func (g *DuoGame) turnPlayer() {

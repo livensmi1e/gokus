@@ -136,6 +136,28 @@ func TestGetPieceShape(t *testing.T) {
 	if len(shape) != 1 {
 		t.Fatal("monomino should have 1 cell")
 	}
+
+	lShape := g.GetPieceShape(3)
+	if len(lShape) != 3 {
+		t.Fatal("piece 3 should have 3 cells")
+	}
+	seen := map[Coordinate]struct{}{}
+	for _, c := range lShape {
+		seen[c] = struct{}{}
+	}
+	if len(seen) != 3 {
+		t.Fatal("piece 3 should preserve unique polyomino coordinates")
+	}
+	if _, ok := seen[Coordinate{0, 0}]; !ok {
+		t.Fatal("piece 3 should contain coordinate (0,0)")
+	}
+	if _, ok := seen[Coordinate{1, 0}]; !ok {
+		t.Fatal("piece 3 should contain coordinate (1,0)")
+	}
+	if _, ok := seen[Coordinate{0, 1}]; !ok {
+		t.Fatal("piece 3 should contain coordinate (0,1)")
+	}
+
 	shape[0].x = 999
 	shape2 := g.GetPieceShape(0)
 	if shape2[0].x == 999 {

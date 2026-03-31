@@ -9,6 +9,18 @@ type Coordinate struct {
 	x, y int
 }
 
+func NewCoordinate(x, y int) Coordinate {
+	return Coordinate{x: x, y: y}
+}
+
+func (c Coordinate) X() int {
+	return c.x
+}
+
+func (c Coordinate) Y() int {
+	return c.y
+}
+
 type piece struct {
 	id    int
 	cells []Coordinate
