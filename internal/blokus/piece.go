@@ -26,8 +26,8 @@ type piece struct {
 	cells []Coordinate
 }
 
-// Rotate 90 degree clockwise
-// Need to call Normalize afterwards
+// Rotate 90 degree clockwise.
+// Need to call Normalize afterwards.
 func (p *piece) rotate() {
 	for i := range p.cells {
 		c := &p.cells[i]
@@ -35,8 +35,8 @@ func (p *piece) rotate() {
 	}
 }
 
-// Flip along the Y axis
-// Need to call Normalize afterwards
+// Flip along the Y axis.
+// Need to call Normalize afterwards.
 func (p *piece) flip() {
 	for i := range p.cells {
 		c := &p.cells[i]
@@ -44,8 +44,8 @@ func (p *piece) flip() {
 	}
 }
 
-// Normalize first makes sure all Coordinates are non negative
-// Then it sorts by X first and by Y to compare to Coordinates
+// Normalize first makes sure all Coordinates are non negative.
+// Then it sorts by X first and by Y to compare to Coordinates.
 func (p *piece) normalize() {
 	minX, minY := math.MaxInt32, math.MaxInt32
 	for _, c := range p.cells {

@@ -13,11 +13,13 @@ type Styles struct {
 
 	Player1 lipgloss.Style
 	Player2 lipgloss.Style
-	Empty   lipgloss.Style
-	Ghost   lipgloss.Style
-	Start   lipgloss.Style
 
-	Text lipgloss.Style
+	Empty     lipgloss.Style
+	Ghost     lipgloss.Style
+	Start     lipgloss.Style
+	Intersect lipgloss.Style
+	Used      lipgloss.Style
+	Text      lipgloss.Style
 }
 
 func NewStyles() Styles {
@@ -25,19 +27,17 @@ func NewStyles() Styles {
 		Root: lipgloss.NewStyle().
 			Background(lipgloss.Color("#090B12")).
 			Foreground(lipgloss.Color("#EAEAF0")).
-			Padding(1, 2),
+			Padding(0, 0),
 		Title: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#F2F4FA")),
 		Subtle: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#A6ADBD")),
 		Board: lipgloss.NewStyle().
-			Padding(1).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#232A3A")),
+			Padding(2),
 		Panel: lipgloss.NewStyle().
-			Padding(1).
-			Border(lipgloss.RoundedBorder()).
+			Padding(0).
+			Border(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color("#232A3A")),
 		Cursor: lipgloss.NewStyle().
 			Background(lipgloss.Color("#F7D66A")).
@@ -56,22 +56,13 @@ func NewStyles() Styles {
 			Background(lipgloss.Color("#CBB67A")).
 			Foreground(lipgloss.Color("#6E5F34")),
 		Ghost: lipgloss.NewStyle().
-			Background(lipgloss.Color("#bbc2ca")).
-			Foreground(lipgloss.Color("#090B12")),
+			Background(lipgloss.Color("#bbc2ca")),
+		Intersect: lipgloss.NewStyle().
+			Background(lipgloss.Color("#e74141")),
+		Used: lipgloss.NewStyle().
+			Background(lipgloss.Color("#5B616B")).
+			Foreground(lipgloss.Color("#D7DCE4")),
 		Text: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#EAEAF0")),
 	}
 }
-
-const (
-	HEADER = `
-   _____       _ 
-  / ____|     | |             
- | |  __  ___ | | ___   _ ___ 
- | | |_ |/ _ \| |/ / | | / __|
- | |__| | (_) |   <| |_| \__ \
-  \_____|\___/|_|\_\\__,_|___/          
-`
-
-	FOOTER = "Keys: arrows/hjkl move | tab/piece | enter place | s skip | r reset | q quit"
-)

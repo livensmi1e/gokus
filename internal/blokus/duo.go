@@ -91,6 +91,26 @@ func (g *DuoGame) PlacePiece(id int, c Coordinate) bool {
 	return true
 }
 
+func (g *DuoGame) RotatePiece(id int) {
+	player := g.players[g.currentPlayer]
+	piece, ok := player.getPiece(id)
+	if !ok {
+		return
+	}
+	piece.rotate()
+	piece.normalize()
+}
+
+func (g *DuoGame) FlipPiece(id int) {
+	player := g.players[g.currentPlayer]
+	piece, ok := player.getPiece(id)
+	if !ok {
+		return
+	}
+	piece.flip()
+	piece.normalize()
+}
+
 func (g *DuoGame) SkipTurn() {
 	g.players[g.currentPlayer].stopped = true
 	g.turnPlayer()
@@ -130,7 +150,7 @@ func (g *DuoGame) PiecesLeft(player Occupant) []int {
 }
 
 // GetPieceShape return the shape of a piece via coordinate of cells.
-// This is a immutable function
+// This is a immutable function - returns the original unmodified shape
 func (g *DuoGame) GetPieceShape(id int) []Coordinate {
 	pieces := getPiecesAtStart()
 	pc := pieces[id]
@@ -139,6 +159,24 @@ func (g *DuoGame) GetPieceShape(id int) []Coordinate {
 		cells[i] = Coordinate{x: c.x, y: c.y}
 	}
 	return cells
+}
+
+// GetCurrentPieceShape return the current state of a piece (possibly rotated/flipped)
+func (g *DuoGame) GetCurrentPieceShape(id int) []Coordinate {
+	player := g.players[g.currentPlayer]
+	pc, ok := player.getPiece(id)
+	if !ok {
+		return []Coordinate{}
+	}
+	cells := make([]Coordinate, len(pc.cells))
+	for i, c := range pc.cells {
+		cells[i] = Coordinate{x: c.x, y: c.y}
+	}
+	return cells
+}
+
+func (g *DuoGame) HasPiece(player Occupant, id int) bool {
+	return g.players[player].hasPiece(id)
 }
 
 func (g *DuoGame) HasStarted(player Occupant) bool {
@@ -158,7 +196,7 @@ func (g *DuoGame) Score(player Occupant) int {
 	score := 0
 	for i := range p.pieces {
 		if p.hasPiece(i) {
-			score += len(g.GetPieceShape(i))
+			score += len(p.pieces[i].cells)
 		}
 	}
 	return score

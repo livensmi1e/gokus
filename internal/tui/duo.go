@@ -13,8 +13,19 @@ const (
 	pieceCellWidth = 2
 	maxPieceCellsX = 5
 	pieceCardWidth = maxPieceCellsX * pieceCellWidth
-	pieceCols      = 4
+	pieceCols      = 5
 	pieceColGap    = 2
+
+	HEADER = `
+   _____       _ 
+  / ____|     | |             
+ | |  __  ___ | | ___   _ ___ 
+ | | |_ |/ _ \| |/ / | | / __|
+ | |__| | (_) |   <| |_| \__ \
+  \_____|\___/|_|\_\\__,_|___/          
+`
+
+	FOOTER = "Keys: arrows move | tab next | shift+tab previous | enter place | r rotate | f flip | s skip | n reset | q quit"
 )
 
 var _ tea.Model = &DouModel{}
@@ -38,7 +49,7 @@ func NewDuoModel() *DouModel {
 	return &DouModel{
 		game:   blokus.NewDuoGame(),
 		styles: NewStyles(),
-		status: "Use arrows/hjkl to move, Tab to change piece, Enter to place.",
+		status: "Welcome to Blokus Duo! Player 1 goes first.",
 	}
 }
 
@@ -56,29 +67,33 @@ func (m *DouModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "left", "h":
+		case "left":
 			m.cursorX = max(0, m.cursorX-1)
-		case "right", "l":
+		case "right":
 			m.cursorX = min(blokus.DUO_BOARD_SIZE-1, m.cursorX+1)
-		case "up", "k":
+		case "up":
 			m.cursorY = max(0, m.cursorY-1)
-		case "down", "j":
+		case "down":
 			m.cursorY = min(blokus.DUO_BOARD_SIZE-1, m.cursorY+1)
-		case "tab", "n":
+		case "tab":
 			m.cycleSelectedPiece(1)
-		case "shift+tab", "p":
+		case "shift+tab":
 			m.cycleSelectedPiece(-1)
-		case "enter", " ":
+		case "enter":
 			m.tryPlaceSelectedPiece()
+		case "r":
+			m.rotateSelectedPiece()
+		case "f":
+			m.flipSelectedPiece()
 		case "s":
 			m.game.SkipTurn()
 			m.selectedPieceIdx = 0
 			m.status = "Turn skipped."
-		case "r":
+		case "n":
 			m.game = blokus.NewDuoGame()
 			m.cursorX, m.cursorY = 0, 0
 			m.selectedPieceIdx = 0
-			m.status = "New game started."
+			m.status = "New game started. Enjoy!"
 		}
 	}
 	return m, nil
@@ -97,7 +112,7 @@ func (m *DouModel) View() tea.View {
 	center := m.renderBoardPanel()
 	right := m.renderPlayerPanel(blokus.Player2)
 
-	body := lipgloss.JoinHorizontal(lipgloss.Top, left, "  ", center, "  ", right)
+	body := lipgloss.JoinHorizontal(lipgloss.Center, left, "  ", center, "  ", right)
 	bodyWidth := lipgloss.Width(body)
 	header = lipgloss.NewStyle().Width(bodyWidth).Align(lipgloss.Center).Render(header)
 	footer := m.styles.Subtle.Render(FOOTER)
@@ -131,11 +146,14 @@ func (m *DouModel) renderBoardPanel() string {
 			cell := board[y][x]
 			style := m.cellStyle(cell)
 			text := "  "
+			if m.isStartingPoint(x, y) && cell == blokus.Empty {
+				style = m.styles.Start
+			}
 			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell == blokus.Empty {
 				style = m.styles.Ghost
 			}
-			if m.isStartingPoint(x, y) && cell == blokus.Empty {
-				style = m.styles.Start
+			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell != blokus.Empty {
+				style = m.styles.Intersect
 			}
 			// if m.cursorX == x && m.cursorY == y {
 			// 	style = m.styles.Cursor
@@ -150,19 +168,26 @@ func (m *DouModel) renderBoardPanel() string {
 }
 
 func (m *DouModel) renderPlayerPanel(player blokus.Occupant) string {
-	pieceIDs := m.game.PiecesLeft(player)
 	header := "Player 1 (White)"
 	if player == blokus.Player2 {
 		header = "Player 2 (Black)"
 	}
 
 	pieceCount := m.game.Score(player)
-	scoreLine := fmt.Sprintf("Pieces: %d | Squares: %d", len(pieceIDs), pieceCount)
+	piecesLeft := m.game.PiecesLeft(player)
+	scoreLine := fmt.Sprintf("Pieces: %d | Squares: %d", len(piecesLeft), pieceCount)
+
+	activePieceID := -1
+	if player == m.game.CurrentPlayer() && len(piecesLeft) > 0 {
+		idx := min(m.selectedPieceIdx, len(piecesLeft)-1)
+		activePieceID = piecesLeft[idx]
+	}
 
 	var cards []string
-	for idx, id := range pieceIDs {
-		active := player == m.game.CurrentPlayer() && idx == m.selectedPieceIdx
-		cards = append(cards, m.renderPieceCard(player, id, active))
+	for id := 0; id < 21; id++ {
+		active := id == activePieceID
+		used := !m.game.HasPiece(player, id)
+		cards = append(cards, m.renderPieceCard(player, id, active, used))
 	}
 	if len(cards) == 0 {
 		cards = []string{m.styles.Subtle.Render("No pieces left")}
@@ -192,9 +217,9 @@ func (m *DouModel) renderPlayerPanel(player blokus.Occupant) string {
 	return m.styles.Panel.Width(panelWidth).Align(lipgloss.Center).Render(content)
 }
 
-func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool) string {
+func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool, used bool) string {
 	shape := m.game.GetPieceShape(id)
-	preview := m.renderPiecePreview(player, shape, active)
+	preview := m.renderPiece(player, shape, active, used)
 	label := fmt.Sprintf("%02d", id)
 	if active {
 		label = m.styles.Cursor.Render(label)
@@ -205,7 +230,7 @@ func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool) 
 	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(card)
 }
 
-func (m *DouModel) renderPiecePreview(player blokus.Occupant, shape []blokus.Coordinate, active bool) string {
+func (m *DouModel) renderPiece(player blokus.Occupant, shape []blokus.Coordinate, active bool, used bool) string {
 	if len(shape) == 0 {
 		return ""
 	}
@@ -223,7 +248,9 @@ func (m *DouModel) renderPiecePreview(player blokus.Occupant, shape []blokus.Coo
 	w := maxX - minX + 1
 	h := maxY - minY + 1
 	filled := m.styles.Player1
-	if player == blokus.Player2 {
+	if used {
+		filled = m.styles.Used
+	} else if player == blokus.Player2 {
 		filled = m.styles.Player2
 	}
 	if active {
@@ -290,8 +317,8 @@ func (m *DouModel) tryPlaceSelectedPiece() {
 		m.status = "Game is over. Press r to restart."
 		return
 	}
-
-	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
+	player := m.game.CurrentPlayer()
+	pieces := m.game.PiecesLeft(player)
 	if len(pieces) == 0 {
 		m.status = "No pieces left. Press s to skip turn."
 		return
@@ -302,10 +329,28 @@ func (m *DouModel) tryPlaceSelectedPiece() {
 	ok := m.game.PlacePiece(id, blokus.NewCoordinate(m.cursorX, m.cursorY))
 	if ok {
 		m.selectedPieceIdx = 0
-		m.status = fmt.Sprintf("Placed piece %d.", id)
+		m.status = fmt.Sprintf("Player %d placed piece %d.", player, id)
 		return
 	}
 	m.status = "Invalid move for this piece at current cursor."
+}
+
+func (m *DouModel) rotateSelectedPiece() {
+	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
+	if len(pieces) == 0 {
+		return
+	}
+	idx := min(m.selectedPieceIdx, len(pieces)-1)
+	m.game.RotatePiece(pieces[idx])
+}
+
+func (m *DouModel) flipSelectedPiece() {
+	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
+	if len(pieces) == 0 {
+		return
+	}
+	idx := min(m.selectedPieceIdx, len(pieces)-1)
+	m.game.FlipPiece(pieces[idx])
 }
 
 func (m *DouModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
@@ -320,7 +365,7 @@ func (m *DouModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
 	}
 
 	idx := min(m.selectedPieceIdx, len(pieces)-1)
-	shape := m.game.GetPieceShape(pieces[idx])
+	shape := m.game.GetCurrentPieceShape(pieces[idx])
 	for _, c := range shape {
 		x := m.cursorX + c.X()
 		y := m.cursorY + c.Y()
