@@ -1,17 +1,17 @@
 ## Gokus
 
-Gokus is a small terminal Blokus Duo game written in Go.
+Gokus is a small terminal Blokus Duo game.
+
+![Demo](./gokus.png)
 
 ### Features
-
-This project focuses on the core Blokus Duo rules and a simple TUI play experience.
 - Blokus Duo board and piece logic
 - Turn-based 2-player flow
 - Piece rotate and flip
 - Ghost preview before placing
 - Terminal UI built with Bubble Tea + Lip Gloss
 
-### TODO
+### Todo
 - SSH server for remote play
 - AI opponent?
 
@@ -36,10 +36,4 @@ Or with Makefile:
 ```bash
 make build
 make run
-```
-
-### Test
-
-```bash
-go test ./internal/... -v
 ```
