@@ -56,7 +56,7 @@ func NewStyles() Styles {
 			Background(lipgloss.Color("#CBB67A")).
 			Foreground(lipgloss.Color("#6E5F34")),
 		Ghost: lipgloss.NewStyle().
-			Background(lipgloss.Color("#6F7A8E")).
+			Background(lipgloss.Color("#bbc2ca")).
 			Foreground(lipgloss.Color("#090B12")),
 		Text: lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#EAEAF0")),

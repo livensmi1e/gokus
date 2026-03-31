@@ -124,19 +124,23 @@ func (m *DouModel) turnLabel() string {
 func (m *DouModel) renderBoardPanel() string {
 	var lines []string
 	board := m.game.Board()
+	ghostCells := m.selectedPieceGhostCells()
 	for y := 0; y < len(board); y++ {
 		var row strings.Builder
 		for x := 0; x < len(board[y]); x++ {
 			cell := board[y][x]
 			style := m.cellStyle(cell)
 			text := "  "
+			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell == blokus.Empty {
+				style = m.styles.Ghost
+			}
 			if m.isStartingPoint(x, y) && cell == blokus.Empty {
 				style = m.styles.Start
 			}
-			if m.cursorX == x && m.cursorY == y {
-				style = m.styles.Cursor
-				text = "><"
-			}
+			// if m.cursorX == x && m.cursorY == y {
+			// 	style = m.styles.Cursor
+			// 	text = "><"
+			// }
 			row.WriteString(style.Render(text))
 		}
 		lines = append(lines, row.String())
@@ -302,6 +306,31 @@ func (m *DouModel) tryPlaceSelectedPiece() {
 		return
 	}
 	m.status = "Invalid move for this piece at current cursor."
+}
+
+func (m *DouModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
+	ghostCells := make(map[blokus.Coordinate]struct{})
+	if m.game.IsOver() {
+		return ghostCells
+	}
+
+	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
+	if len(pieces) == 0 {
+		return ghostCells
+	}
+
+	idx := min(m.selectedPieceIdx, len(pieces)-1)
+	shape := m.game.GetPieceShape(pieces[idx])
+	for _, c := range shape {
+		x := m.cursorX + c.X()
+		y := m.cursorY + c.Y()
+		if x < 0 || x >= blokus.DUO_BOARD_SIZE || y < 0 || y >= blokus.DUO_BOARD_SIZE {
+			continue
+		}
+		ghostCells[blokus.NewCoordinate(x, y)] = struct{}{}
+	}
+
+	return ghostCells
 }
 
 func joinAsColumns(items []string, cols int, colWidth int, colGap int) string {
