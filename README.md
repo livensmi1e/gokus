@@ -10,6 +10,8 @@ Gokus is a small terminal Blokus Duo game.
 - Piece rotate and flip
 - Ghost preview before placing
 - Terminal UI built with Bubble Tea + Lip Gloss
+- Design based on this nice paper: [Implementing Minimax Search with Alpha-Beta
+Pruning in Blokus Duo](https://informatika.stei.itb.ac.id/~rinaldi.munir/Stmik/2024-2025/Makalah2025/Makalah-IF2211-Strategi-Algoritma-2025%20(99).pdf)
 
 ### Todo
 - SSH server for remote play
