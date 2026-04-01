@@ -130,6 +130,31 @@ func TestPiecesLeft(t *testing.T) {
 		t.Fatal("should have 20 pieces after placement")
 	}
 }
+
+func TestIsPieceUsed(t *testing.T) {
+	g := newTestGame()
+	if g.IsPieceUsed(Player1, 0) {
+		t.Fatal("piece should not be used at start")
+	}
+	if !g.PlacePiece(0, STARTING_POINTS[0]) {
+		t.Fatal("p1 first move failed")
+	}
+	if !g.IsPieceUsed(Player1, 0) {
+		t.Fatal("piece should be marked used after placement")
+	}
+}
+
+func TestGetPieceWidthAndHeightForUsedPiece(t *testing.T) {
+	g := newTestGame()
+	if !g.PlacePiece(0, STARTING_POINTS[0]) {
+		t.Fatal("p1 first move failed")
+	}
+	w, h := g.GetPieceWidthAndHeight(Player1, 0)
+	if w != 1 || h != 1 {
+		t.Fatalf("unexpected dimensions for used piece: got (%d,%d)", w, h)
+	}
+}
+
 func TestGetPieceShape(t *testing.T) {
 	g := newTestGame()
 	shape := g.GetPieceShape(0)

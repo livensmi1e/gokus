@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	pieceCellWidth = 2
-	maxPieceCellsX = 5
+	pieceCellWidth = 2 // width of a single cell of a piece in characters
+	maxPieceCellsX = 5 // max width of any piece shape in cells
 	pieceCardWidth = maxPieceCellsX * pieceCellWidth
 	pieceCols      = 5
 	pieceColGap    = 2
@@ -179,14 +179,14 @@ func (m *DouModel) renderPlayerPanel(player blokus.Occupant) string {
 
 	activePieceID := -1
 	if player == m.game.CurrentPlayer() && len(piecesLeft) > 0 {
-		idx := min(m.selectedPieceIdx, len(piecesLeft)-1)
+		idx := min(m.selectedPieceIdx, len(piecesLeft)-1) // should we even need this min check here?
 		activePieceID = piecesLeft[idx]
 	}
 
 	var cards []string
 	for id := 0; id < 21; id++ {
 		active := id == activePieceID
-		used := !m.game.HasPiece(player, id)
+		used := m.game.IsPieceUsed(player, id)
 		cards = append(cards, m.renderPieceCard(player, id, active, used))
 	}
 	if len(cards) == 0 {
@@ -213,14 +213,13 @@ func (m *DouModel) renderPlayerPanel(player blokus.Occupant) string {
 		piecesGrid,
 	)
 
-	panelWidth := pieceCols*pieceCardWidth + (pieceCols-1)*pieceColGap + 4
+	panelWidth := pieceCols*pieceCardWidth + (pieceCols-1)*pieceColGap + 4 // padding and border on both sides
 	return m.styles.Panel.Width(panelWidth).Align(lipgloss.Center).Render(content)
 }
 
 func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool, used bool) string {
-	shape := m.game.GetPieceShape(id)
-	preview := m.renderPiece(player, shape, active, used)
-	label := fmt.Sprintf("%02d", id)
+	preview := m.renderPiece(player, id, active, used)
+	label := fmt.Sprintf("%02d", id+1)
 	if active {
 		label = m.styles.Cursor.Render(label)
 	} else {
@@ -230,23 +229,13 @@ func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool, 
 	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(card)
 }
 
-func (m *DouModel) renderPiece(player blokus.Occupant, shape []blokus.Coordinate, active bool, used bool) string {
+func (m *DouModel) renderPiece(player blokus.Occupant, id int, active bool, used bool) string {
+	shape := m.game.GetPieceShape(id)
 	if len(shape) == 0 {
 		return ""
 	}
+	w, h := m.game.GetPieceWidthAndHeight(player, id)
 
-	minX, minY := shape[0].X(), shape[0].Y()
-	maxX, maxY := minX, minY
-	for _, c := range shape {
-		x, y := c.X(), c.Y()
-		minX = min(minX, x)
-		minY = min(minY, y)
-		maxX = max(maxX, x)
-		maxY = max(maxY, y)
-	}
-
-	w := maxX - minX + 1
-	h := maxY - minY + 1
 	filled := m.styles.Player1
 	if used {
 		filled = m.styles.Used
@@ -258,11 +247,9 @@ func (m *DouModel) renderPiece(player blokus.Occupant, shape []blokus.Coordinate
 	}
 	empty := lipgloss.NewStyle()
 
-	localCoords := make(map[string]struct{}, len(shape))
+	coords := make(map[string]struct{}, len(shape))
 	for _, c := range shape {
-		localX := c.X() - minX
-		localY := c.Y() - minY
-		localCoords[fmt.Sprintf("%d:%d", localX, localY)] = struct{}{}
+		coords[fmt.Sprintf("%d:%d", c.X(), c.Y())] = struct{}{}
 	}
 
 	var lines []string
@@ -270,7 +257,7 @@ func (m *DouModel) renderPiece(player blokus.Occupant, shape []blokus.Coordinate
 		var row strings.Builder
 		for x := 0; x < w; x++ {
 			key := fmt.Sprintf("%d:%d", x, y)
-			if _, ok := localCoords[key]; ok {
+			if _, ok := coords[key]; ok {
 				row.WriteString(filled.Render("  "))
 				continue
 			}

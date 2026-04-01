@@ -28,6 +28,9 @@ func NewDuoGame() *DuoGame {
 // This is an immutable method
 func (g *DuoGame) CanPlacePiece(id int, c Coordinate) bool {
 	player := g.players[g.currentPlayer]
+	if !player.hasPiece(id) {
+		return false
+	}
 	piece, ok := player.getPiece(id)
 	if !ok {
 		return false
@@ -76,8 +79,11 @@ func (g *DuoGame) PlacePiece(id int, c Coordinate) bool {
 		return false
 	}
 	player := g.players[g.currentPlayer]
-	piece, ok := player.takePiece(id)
+	piece, ok := player.getPiece(id)
 	if !ok {
+		return false
+	}
+	if !player.markPieceUsed(id) {
 		return false
 	}
 	for _, cell := range piece.cells {
@@ -177,6 +183,19 @@ func (g *DuoGame) GetCurrentPieceShape(id int) []Coordinate {
 
 func (g *DuoGame) HasPiece(player Occupant, id int) bool {
 	return g.players[player].hasPiece(id)
+}
+
+func (g *DuoGame) IsPieceUsed(player Occupant, id int) bool {
+	return g.players[player].isPieceUsed(id)
+}
+
+func (g *DuoGame) GetPieceWidthAndHeight(player Occupant, id int) (int, int) {
+	p := g.players[player]
+	pc, ok := p.getPiece(id)
+	if !ok {
+		return 0, 0
+	}
+	return pc.getWidth(), pc.getHeight()
 }
 
 func (g *DuoGame) HasStarted(player Occupant) bool {

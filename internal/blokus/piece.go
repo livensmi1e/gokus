@@ -24,6 +24,7 @@ func (c Coordinate) Y() int {
 type piece struct {
 	id    int
 	cells []Coordinate
+	used  bool
 }
 
 // Rotate 90 degree clockwise.
@@ -63,6 +64,22 @@ func (p *piece) normalize() {
 		}
 		return a.x - b.x
 	})
+}
+
+func (p *piece) getWidth() int {
+	maxX := 0
+	for _, c := range p.cells {
+		maxX = max(maxX, c.x)
+	}
+	return maxX + 1
+}
+
+func (p *piece) getHeight() int {
+	maxY := 0
+	for _, c := range p.cells {
+		maxY = max(maxY, c.y)
+	}
+	return maxY + 1
 }
 
 func getPiecesAtStart() []*piece {

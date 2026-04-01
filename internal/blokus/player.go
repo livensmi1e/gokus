@@ -7,25 +7,37 @@ type player struct {
 	stopped bool
 }
 
+func (p *player) validPieceID(id int) bool {
+	return id >= 0 && id <= 20
+}
+
 func (p *player) hasPiece(id int) bool {
-	if id < 0 || id > 20 {
+	pc, ok := p.getPiece(id)
+	if !ok {
 		return false
 	}
-	return p.pieces[id] != nil
+	return !pc.used
 }
 
 func (p *player) getPiece(id int) (*piece, bool) {
-	if !p.hasPiece(id) {
+	if !p.validPieceID(id) {
 		return nil, false
 	}
 	return p.pieces[id], true
 }
 
-func (p *player) takePiece(id int) (*piece, bool) {
-	if !p.hasPiece(id) {
-		return nil, false
+func (p *player) isPieceUsed(id int) bool {
+	pc, ok := p.getPiece(id)
+	if !ok {
+		return false
 	}
-	pc := p.pieces[id]
-	p.pieces[id] = nil
-	return pc, true
+	return pc.used
+}
+
+func (p *player) markPieceUsed(id int) bool {
+	if !p.hasPiece(id) {
+		return false
+	}
+	p.pieces[id].used = true
+	return true
 }

@@ -3,14 +3,10 @@ package blokus
 import "testing"
 
 func newTestPlayer() *player {
-	p := &player{
+	return &player{
 		id:     1,
-		pieces: make([]*piece, 21),
+		pieces: getPiecesAtStart(),
 	}
-	p.pieces[0] = &piece{}
-	p.pieces[5] = &piece{}
-	p.pieces[20] = &piece{}
-	return p
 }
 
 func TestHasPiece(t *testing.T) {
@@ -22,7 +18,7 @@ func TestHasPiece(t *testing.T) {
 		{0, true},
 		{5, true},
 		{20, true},
-		{1, false},
+		{1, true},
 		{-1, false},
 		{21, false},
 	}
@@ -41,7 +37,7 @@ func TestGetPiece(t *testing.T) {
 		nilp bool
 	}{
 		{0, true, false},
-		{1, false, true},
+		{1, true, false},
 		{-1, false, true},
 	}
 	for _, tc := range tt {
@@ -55,7 +51,7 @@ func TestGetPiece(t *testing.T) {
 	}
 }
 
-func TestTakePiece(t *testing.T) {
+func TestMarkPieceUsed(t *testing.T) {
 	p := newTestPlayer()
 	tt := []struct {
 		first  int
@@ -64,16 +60,22 @@ func TestTakePiece(t *testing.T) {
 		{5, 5},
 	}
 	for _, tc := range tt {
-		pc, ok := p.takePiece(tc.first)
-		if !ok || pc == nil {
-			t.Fatalf("first take fail id=%d", tc.first)
+		ok := p.markPieceUsed(tc.first)
+		if !ok {
+			t.Fatalf("first mark used fail id=%d", tc.first)
 		}
 		if p.hasPiece(tc.first) {
-			t.Fatalf("not removed id=%d", tc.first)
+			t.Fatalf("should be unavailable after use id=%d", tc.first)
 		}
-		pc, ok = p.takePiece(tc.second)
-		if ok || pc != nil {
-			t.Fatalf("second take should fail id=%d", tc.second)
+		if !p.isPieceUsed(tc.first) {
+			t.Fatalf("expected used flag true id=%d", tc.first)
+		}
+		ok = p.markPieceUsed(tc.second)
+		if ok {
+			t.Fatalf("second mark used should fail id=%d", tc.second)
+		}
+		if pc, ok := p.getPiece(tc.first); !ok || pc == nil {
+			t.Fatalf("piece should still exist after use id=%d", tc.first)
 		}
 	}
 }
