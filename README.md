@@ -13,6 +13,7 @@ Gokus is a small terminal Blokus Duo game.
 
 ### Todo
 - SSH server for remote play
+- Detect game over and show winner
 - AI opponent?
 
 ### Controls
