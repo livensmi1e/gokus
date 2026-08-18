@@ -22,7 +22,7 @@ type placeRequest struct {
 	reply   chan error
 }
 
-func (pr *placeRequest) isRequest() {}
+func (*placeRequest) isRequest() {}
 
 type joinResult struct {
 	client *Client
@@ -33,7 +33,7 @@ type joinRequest struct {
 	reply chan joinResult
 }
 
-func (pr *joinRequest) isRequest() {}
+func (*joinRequest) isRequest() {}
 
 type Room struct {
 	requests chan request
@@ -71,19 +71,19 @@ func (r *Room) run(ctx context.Context) {
 				req.reply <- ErrInvalidMove
 			case *joinRequest:
 				if joined == 0 {
+					joined++
 					req.reply <- joinResult{
 						client: &Client{blokus.Player1},
 						err:    nil,
 					}
-					joined++
 					continue
 				}
 				if joined == 1 {
+					joined++
 					req.reply <- joinResult{
 						client: &Client{blokus.Player2},
 						err:    nil,
 					}
-					joined++
 					continue
 				}
 				if joined >= 2 {
@@ -99,6 +99,9 @@ func (r *Room) Place(
 	pieceId int,
 	at blokus.Coordinate,
 ) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	reply := make(chan error, 1) // buffered to avoid room block forever because it send reply but Place caller already canceled
 	req := &placeRequest{
 		pieceId: pieceId,
@@ -117,19 +120,14 @@ func (r *Room) Place(
 		return ErrClosed
 	}
 	// receive reply
-	select {
-	case err := <-reply:
-		return err
-	case <-ctx.Done():
-		// caller does not want to wait and command room to stop
-		return ctx.Err()
-	case <-r.done:
-		// room has already stopped
-		return ErrClosed
-	}
+	// always wait the operation to be completed
+	return <-reply
 }
 
 func (r *Room) Join(ctx context.Context) (*Client, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	reply := make(chan joinResult, 1)
 	req := &joinRequest{
 		reply: reply,
@@ -144,14 +142,10 @@ func (r *Room) Join(ctx context.Context) (*Client, error) {
 		return nil, ErrClosed
 	}
 	// receive reply
-	select {
-	case result := <-reply:
-		return result.client, result.err
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-r.done:
-		return nil, ErrClosed
-	}
+	// always wait the operation to be completed
+	result := <-reply
+	return result.client, result.err
+
 }
 
 // Safe to call multiple times

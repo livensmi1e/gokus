@@ -62,22 +62,24 @@ func TestPlaceAfterClose(t *testing.T) {
 // Making 2 option is valid for select in Place
 // Go will randomly choose one to continue
 // Therefor not a good test because it does not test the expected contract of the API
-// func TestPlaceWhenCallerContextAlreadyCancel(t *testing.T) {
-// 	r := New(context.Background())
-// 	defer r.Close()
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	cancel()
-// 	err := r.Place(
-// 		ctx,
-// 		0,
-// 		blokus.NewCoordinate(4, 4),
-// 	)
-// 	if !errors.Is(err, context.Canceled) {
-// 		t.Fatalf("expected context canceled, got %v", err)
-// 	}
-// }
+//
+// After adding pre-check context cancelled in Place, this test is not flaky anymore
+func TestPlaceWhenCallerContextAlreadyCancel(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := r.Place(
+		ctx,
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled, got %v", err)
+	}
+}
 
-func TestJoinAssginsFirstPlayer(t *testing.T) {
+func TestJoinAssignsFirstPlayer(t *testing.T) {
 	r := New(context.Background())
 	defer r.Close()
 	client, err := r.Join(context.Background())
@@ -110,7 +112,7 @@ func TestJoinAssignsSecondPlayer(t *testing.T) {
 	}
 }
 
-func TestJoinRejectWhenRoomFull(t *testing.T) {
+func TestJoinRejectsWhenRoomFull(t *testing.T) {
 	r := New(context.Background())
 	defer r.Close()
 	if _, err := r.Join(context.Background()); err != nil {
