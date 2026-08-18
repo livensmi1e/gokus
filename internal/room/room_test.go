@@ -76,3 +76,54 @@ func TestPlaceAfterClose(t *testing.T) {
 // 		t.Fatalf("expected context canceled, got %v", err)
 // 	}
 // }
+
+func TestJoinAssginsFirstPlayer(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client, err := r.Join(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected a client, got nil")
+	}
+	if client.Player() != blokus.Player1 {
+		t.Fatalf("expected Player1, got %v", client.Player())
+	}
+}
+
+func TestJoinAssignsSecondPlayer(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	if _, err := r.Join(context.Background()); err != nil {
+		t.Fatalf("join first player: %v", err)
+	}
+	client2, err := r.Join(context.Background())
+	if err != nil {
+		t.Fatalf("join second player: %v", err)
+	}
+	if client2 == nil {
+		t.Fatal("expected a client, got nil")
+	}
+	if client2.Player() != blokus.Player2 {
+		t.Fatalf("expected Player2, got %v", client2.Player())
+	}
+}
+
+func TestJoinRejectWhenRoomFull(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	if _, err := r.Join(context.Background()); err != nil {
+		t.Fatalf("join first player: %v", err)
+	}
+	if _, err := r.Join(context.Background()); err != nil {
+		t.Fatalf("join second player: %v", err)
+	}
+	client, err := r.Join(context.Background())
+	if !errors.Is(err, ErrFull) {
+		t.Fatalf("expected ErrFull, got: %v", err)
+	}
+	if client != nil {
+		t.Fatal("expected nil client")
+	}
+}
