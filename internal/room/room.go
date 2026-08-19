@@ -10,6 +10,7 @@ var (
 	ErrClosed      = errors.New("room closed")
 	ErrInvalidMove = errors.New("invalid move")
 	ErrFull        = errors.New("room full")
+	ErrOutOfTurn   = errors.New("out of turn")
 )
 
 type request interface {
@@ -17,6 +18,7 @@ type request interface {
 }
 
 type placeRequest struct {
+	player  blokus.Occupant
 	pieceId int
 	at      blokus.Coordinate
 	reply   chan error
@@ -64,6 +66,10 @@ func (r *Room) run(ctx context.Context) {
 		case req := <-r.requests:
 			switch req := req.(type) {
 			case *placeRequest:
+				if req.player != game.CurrentPlayer() {
+					req.reply <- ErrOutOfTurn
+					continue
+				}
 				if game.PlacePiece(req.pieceId, req.at) {
 					req.reply <- nil
 					continue
@@ -73,7 +79,7 @@ func (r *Room) run(ctx context.Context) {
 				if joined == 0 {
 					joined++
 					req.reply <- joinResult{
-						client: &Client{blokus.Player1},
+						client: &Client{player: blokus.Player1, room: r},
 						err:    nil,
 					}
 					continue
@@ -81,21 +87,22 @@ func (r *Room) run(ctx context.Context) {
 				if joined == 1 {
 					joined++
 					req.reply <- joinResult{
-						client: &Client{blokus.Player2},
+						client: &Client{player: blokus.Player2, room: r},
 						err:    nil,
 					}
 					continue
 				}
 				if joined >= 2 {
-					req.reply <- joinResult{nil, ErrFull}
+					req.reply <- joinResult{err: ErrFull}
 				}
 			}
 		}
 	}
 }
 
-func (r *Room) Place(
+func (r *Room) place(
 	ctx context.Context,
+	player blokus.Occupant,
 	pieceId int,
 	at blokus.Coordinate,
 ) error {
@@ -104,6 +111,7 @@ func (r *Room) Place(
 	}
 	reply := make(chan error, 1) // buffered to avoid room block forever because it send reply but Place caller already canceled
 	req := &placeRequest{
+		player:  player,
 		pieceId: pieceId,
 		at:      at,
 		reply:   reply,
@@ -113,10 +121,10 @@ func (r *Room) Place(
 	case r.requests <- req:
 		// room received request
 	case <-ctx.Done():
-		// caller does not want to wait and command room to stop
+		// caller does not want to wait and command room to close
 		return ctx.Err()
 	case <-r.done:
-		// room has already stopped
+		// room has already closed
 		return ErrClosed
 	}
 	// receive reply
