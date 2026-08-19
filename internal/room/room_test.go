@@ -74,14 +74,15 @@ func TestJoinRejectsWhenRoomFull(t *testing.T) {
 func TestClientPlace(t *testing.T) {
 	r := New(context.Background())
 	defer r.Close()
-	client := mustJoin(t, r)
-	err := client.Place(
+	client1 := mustJoin(t, r)
+	_ = mustJoin(t, r)
+	err := client1.Place(
 		context.Background(),
 		0,
 		blokus.NewCoordinate(4, 4),
 	)
 	if err != nil {
-		t.Fatalf("expected valid move: %v", err)
+		t.Fatalf("expected valid move, got: %v", err)
 	}
 }
 
@@ -152,5 +153,28 @@ func TestClientPlaceRoomRejectPlayerOutOfTurn(t *testing.T) {
 	)
 	if !errors.Is(err, ErrOutOfTurn) {
 		t.Fatalf("expected ErrOutOfTurn, got: %v", err)
+	}
+}
+
+func TestClientWaitForOpponent(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	err := client1.Place(
+		context.Background(),
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if !errors.Is(err, ErrWaitingForOpponent) {
+		t.Fatalf("expected ErrWaitingForOpponent, got: %v", err)
+	}
+	_ = mustJoin(t, r)
+	err = client1.Place(
+		context.Background(),
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if err != nil {
+		t.Fatalf("expected valid move after two players join, got: %v", err)
 	}
 }

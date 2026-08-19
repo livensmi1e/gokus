@@ -7,10 +7,11 @@ import (
 )
 
 var (
-	ErrClosed      = errors.New("room closed")
-	ErrInvalidMove = errors.New("invalid move")
-	ErrFull        = errors.New("room full")
-	ErrOutOfTurn   = errors.New("out of turn")
+	ErrClosed             = errors.New("room closed")
+	ErrInvalidMove        = errors.New("invalid move")
+	ErrFull               = errors.New("room full")
+	ErrOutOfTurn          = errors.New("out of turn")
+	ErrWaitingForOpponent = errors.New("waiting for other opponent")
 )
 
 type request interface {
@@ -66,6 +67,10 @@ func (r *Room) run(ctx context.Context) {
 		case req := <-r.requests:
 			switch req := req.(type) {
 			case *placeRequest:
+				if joined < 2 {
+					req.reply <- ErrWaitingForOpponent
+					continue
+				}
 				if req.player != game.CurrentPlayer() {
 					req.reply <- ErrOutOfTurn
 					continue
