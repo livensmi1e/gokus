@@ -11,7 +11,7 @@ var (
 	ErrInvalidMove        = errors.New("invalid move")
 	ErrFull               = errors.New("room full")
 	ErrOutOfTurn          = errors.New("out of turn")
-	ErrWaitingForOpponent = errors.New("waiting for other opponent")
+	ErrWaitingForOpponent = errors.New("waiting for opponent")
 )
 
 type request interface {
@@ -37,6 +37,12 @@ type joinRequest struct {
 }
 
 func (*joinRequest) isRequest() {}
+
+type stateRequest struct {
+	reply chan State
+}
+
+func (*stateRequest) isRequest() {}
 
 type Room struct {
 	requests chan request
@@ -100,6 +106,11 @@ func (r *Room) run(ctx context.Context) {
 				if joined >= 2 {
 					req.reply <- joinResult{err: ErrFull}
 				}
+			case *stateRequest:
+				req.reply <- State{
+					Board:         game.Board(),
+					CurrentPlayer: game.CurrentPlayer(),
+				}
 			}
 		}
 	}
@@ -137,14 +148,29 @@ func (r *Room) place(
 	return <-reply
 }
 
+func (r *Room) state(ctx context.Context) (State, error) {
+	if err := ctx.Err(); err != nil {
+		return State{}, err
+	}
+	reply := make(chan State, 1)
+	req := &stateRequest{reply: reply}
+	select {
+	case r.requests <- req:
+		// room received request
+	case <-ctx.Done():
+		return State{}, ctx.Err()
+	case <-r.done:
+		return State{}, ErrClosed
+	}
+	return <-reply, nil
+}
+
 func (r *Room) Join(ctx context.Context) (*Client, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	reply := make(chan joinResult, 1)
-	req := &joinRequest{
-		reply: reply,
-	}
+	req := &joinRequest{reply: reply}
 	// send join request
 	select {
 	case r.requests <- req:

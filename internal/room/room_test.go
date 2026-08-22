@@ -3,6 +3,7 @@ package room
 import (
 	"context"
 	"errors"
+	"log"
 	"testing"
 
 	"gokus/internal/blokus"
@@ -176,5 +177,58 @@ func TestClientWaitForOpponent(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatalf("expected valid move after two players join, got: %v", err)
+	}
+}
+
+func TestClientStateReflectsPlacedMove(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	err := client1.Place(
+		context.Background(),
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if err != nil {
+		log.Fatalf("expected valid move, got: %v", err)
+	}
+	state, err := client2.State(context.Background())
+	if err != nil {
+		t.Fatalf("get client state: %v", err)
+	}
+	if state.Board[4][4] != blokus.Player1 || state.CurrentPlayer != blokus.Player2 {
+		t.Fatalf("expected player1 piece at (4,4) and current player is player2")
+	}
+}
+
+func TestStateMutationDoesNotAffectRoom(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	err := client1.Place(
+		context.Background(),
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if err != nil {
+		log.Fatalf("expected valid move, got: %v", err)
+	}
+	state, err := client2.State(context.Background())
+	if err != nil {
+		t.Fatalf("get client state: %v", err)
+	}
+	if state.Board[4][4] != blokus.Player1 || state.CurrentPlayer != blokus.Player2 {
+		t.Fatalf("expected player1 piece at (4,4) and current player is player2")
+	}
+	state.Board[4][4] = blokus.Player2
+	state.CurrentPlayer = blokus.Player1
+	state, err = client2.State(context.Background())
+	if err != nil {
+		t.Fatalf("get client state: %v", err)
+	}
+	if state.Board[4][4] != blokus.Player1 || state.CurrentPlayer != blokus.Player2 {
+		t.Fatalf("expected room's game state does not change")
 	}
 }

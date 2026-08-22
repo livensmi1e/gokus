@@ -21,3 +21,7 @@ func (c *Client) Place(
 ) error {
 	return c.room.place(ctx, c.player, pieceId, at)
 }
+
+func (c *Client) State(ctx context.Context) (State, error) {
+	return c.room.state(ctx)
+}
