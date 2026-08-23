@@ -25,3 +25,7 @@ func (c *Client) Place(
 func (c *Client) State(ctx context.Context) (State, error) {
 	return c.room.state(ctx)
 }
+
+func (c *Client) Updates() <-chan State {
+	return make(<-chan State)
+}

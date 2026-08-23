@@ -3,8 +3,8 @@ package room
 import (
 	"context"
 	"errors"
-	"log"
 	"testing"
+	"time"
 
 	"gokus/internal/blokus"
 )
@@ -19,6 +19,25 @@ func mustJoin(t *testing.T, r *Room) *Client {
 		t.Fatal("join room returned nil client without error")
 	}
 	return client
+}
+
+func mustReceiveState(t *testing.T, updates <-chan State) State {
+	t.Helper()
+	if updates == nil {
+		t.Fatal("expected update channel, got nil")
+	}
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
+	select {
+	case state, ok := <-updates:
+		if !ok {
+			t.Fatal("update channel closed before delivering state")
+		}
+		return state
+	case <-timer.C:
+		t.Fatal("timed out waiting for state update")
+	}
+	return State{}
 }
 
 func TestRoomClose(t *testing.T) {
@@ -191,7 +210,7 @@ func TestClientStateReflectsPlacedMove(t *testing.T) {
 		blokus.NewCoordinate(4, 4),
 	)
 	if err != nil {
-		log.Fatalf("expected valid move, got: %v", err)
+		t.Fatalf("expected valid move, got: %v", err)
 	}
 	state, err := client2.State(context.Background())
 	if err != nil {
@@ -213,14 +232,14 @@ func TestStateMutationDoesNotAffectRoom(t *testing.T) {
 		blokus.NewCoordinate(4, 4),
 	)
 	if err != nil {
-		log.Fatalf("expected valid move, got: %v", err)
+		t.Fatalf("expected valid move, got: %v", err)
 	}
 	state, err := client2.State(context.Background())
 	if err != nil {
 		t.Fatalf("get client state: %v", err)
 	}
 	if state.Board[4][4] != blokus.Player1 || state.CurrentPlayer != blokus.Player2 {
-		t.Fatalf("expected player1 piece at (4,4) and current player is player2")
+		t.Fatal("expected player1 piece at (4,4) and current player is player2")
 	}
 	state.Board[4][4] = blokus.Player2
 	state.CurrentPlayer = blokus.Player1
@@ -229,6 +248,32 @@ func TestStateMutationDoesNotAffectRoom(t *testing.T) {
 		t.Fatalf("get client state: %v", err)
 	}
 	if state.Board[4][4] != blokus.Player1 || state.CurrentPlayer != blokus.Player2 {
-		t.Fatalf("expected room's game state does not change")
+		t.Fatal("expected room's game state does not change")
+	}
+}
+
+// Subject:   Client
+// Behavior:  Receives State
+// Condition: After Opponent Places
+func TestClientReceivesStateAfterOpponentPlaces(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	updates := client2.Updates()
+	err := client1.Place(
+		context.Background(),
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if err != nil {
+		t.Fatalf("expected valid move, got: %v", err)
+	}
+	state := mustReceiveState(t, updates)
+	if state.Board[4][4] != blokus.Player1 {
+		t.Fatal("expected board at 4,4 to be Player1")
+	}
+	if state.CurrentPlayer != blokus.Player2 {
+		t.Fatal("expected current player to be Player2")
 	}
 }
