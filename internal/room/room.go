@@ -83,10 +83,10 @@ func (r *Room) run(ctx context.Context) {
 				}
 				if game.PlacePiece(req.pieceId, req.at) {
 					for _, client := range clients {
-						client.updates <- State{
+						publishLatest(client.updates, State{
 							Board:         game.Board(),
 							CurrentPlayer: game.CurrentPlayer(),
-						}
+						})
 					}
 					req.reply <- nil
 					continue
@@ -197,4 +197,24 @@ func (r *Room) Join(ctx context.Context) (*Client, error) {
 func (r *Room) Close() {
 	r.cancel()
 	<-r.done // unblock when done chan is closed
+}
+
+func publishLatest(updates chan State, s State) {
+	// try publish state
+	select {
+	case updates <- s:
+		// success
+		return
+	default:
+		// channel full
+	}
+	// try recevie old state
+	select {
+	case <-updates:
+		// success
+	default:
+		// old state has been received by client
+	}
+	// publish again, channel always empty so always success
+	updates <- s
 }

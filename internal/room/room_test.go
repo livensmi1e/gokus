@@ -277,3 +277,60 @@ func TestClientReceivesStateAfterOpponentPlaces(t *testing.T) {
 		t.Fatal("expected current player to be Player2")
 	}
 }
+
+func TestSlowClientDoesNotBlockRoom(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	err := client1.Place(
+		context.Background(),
+		0,
+		blokus.NewCoordinate(4, 4),
+	)
+	if err != nil {
+		t.Fatalf("place first move: %v", err)
+	}
+	result := make(chan error, 1)
+	go func() {
+		result <- client2.Place(
+			context.Background(),
+			0,
+			blokus.NewCoordinate(9, 9),
+		)
+	}()
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatalf("place second move: %v", err)
+		}
+	case <-timer.C:
+		// timeout proves that Room has been blocked by updates channel
+		// cleanup work
+		// make sure the room does not block
+		<-client1.Updates()
+		<-client2.Updates()
+		// make sure Place has finished
+		<-result
+		t.Fatal("place blocked by clients that had not consumed updates")
+	}
+}
+
+func TestPublishLatestReplacePendingState(t *testing.T) {
+	updates := make(chan State, 1)
+	updates <- State{
+		CurrentPlayer: blokus.Player1,
+	}
+	publishLatest(updates, State{
+		CurrentPlayer: blokus.Player2,
+	})
+	got := <-updates
+	if got.CurrentPlayer != blokus.Player2 {
+		t.Fatalf(
+			"expected latest state for Player2, got current player %v",
+			got.CurrentPlayer,
+		)
+	}
+}
