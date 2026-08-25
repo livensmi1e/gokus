@@ -65,7 +65,7 @@ func New(parent context.Context) *Room {
 func (r *Room) run(ctx context.Context) {
 	defer close(r.done)
 	game := blokus.NewDuoGame() // only goroutine run can access game. this is why game not placed in room struct
-	joined := 0
+	clients := make([]*Client, 0, 2)
 	for {
 		select {
 		case <-ctx.Done():
@@ -73,7 +73,7 @@ func (r *Room) run(ctx context.Context) {
 		case req := <-r.requests:
 			switch req := req.(type) {
 			case *placeRequest:
-				if joined < 2 {
+				if len(clients) < 2 {
 					req.reply <- ErrWaitingForOpponent
 					continue
 				}
@@ -82,29 +82,33 @@ func (r *Room) run(ctx context.Context) {
 					continue
 				}
 				if game.PlacePiece(req.pieceId, req.at) {
+					for _, client := range clients {
+						client.updates <- State{
+							Board:         game.Board(),
+							CurrentPlayer: game.CurrentPlayer(),
+						}
+					}
 					req.reply <- nil
 					continue
 				}
 				req.reply <- ErrInvalidMove
 			case *joinRequest:
-				if joined == 0 {
-					joined++
-					req.reply <- joinResult{
-						client: &Client{player: blokus.Player1, room: r},
-						err:    nil,
-					}
-					continue
-				}
-				if joined == 1 {
-					joined++
-					req.reply <- joinResult{
-						client: &Client{player: blokus.Player2, room: r},
-						err:    nil,
-					}
-					continue
-				}
-				if joined >= 2 {
+				if len(clients) >= 2 {
 					req.reply <- joinResult{err: ErrFull}
+					continue
+				}
+				var client *Client
+				if len(clients) == 0 {
+					client = newClient(r, blokus.Player1)
+
+				}
+				if len(clients) == 1 {
+					client = newClient(r, blokus.Player2)
+				}
+				clients = append(clients, client)
+				req.reply <- joinResult{
+					client: client,
+					err:    nil,
 				}
 			case *stateRequest:
 				req.reply <- State{

@@ -6,8 +6,17 @@ import (
 )
 
 type Client struct {
-	player blokus.Occupant
-	room   *Room
+	player  blokus.Occupant
+	room    *Room
+	updates chan State
+}
+
+func newClient(r *Room, player blokus.Occupant) *Client {
+	return &Client{
+		player:  player,
+		room:    r,
+		updates: make(chan State, 1),
+	}
 }
 
 func (c *Client) Player() blokus.Occupant {
@@ -27,5 +36,5 @@ func (c *Client) State(ctx context.Context) (State, error) {
 }
 
 func (c *Client) Updates() <-chan State {
-	return make(<-chan State)
+	return c.updates
 }
