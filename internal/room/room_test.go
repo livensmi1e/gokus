@@ -334,3 +334,14 @@ func TestPublishLatestReplacePendingState(t *testing.T) {
 		)
 	}
 }
+
+func TestClientUpdatesCloseWhenRoomClose(t *testing.T) {
+	r := New(context.Background())
+	client := mustJoin(t, r)
+	updates := client.Updates()
+	r.Close()
+	_, ok := <-updates
+	if ok {
+		t.Fatal("expected updates channel to be closed")
+	}
+}

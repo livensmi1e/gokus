@@ -63,9 +63,14 @@ func New(parent context.Context) *Room {
 }
 
 func (r *Room) run(ctx context.Context) {
-	defer close(r.done)
 	game := blokus.NewDuoGame() // only goroutine run can access game. this is why game not placed in room struct
 	clients := make([]*Client, 0, 2)
+	defer func() {
+		for _, client := range clients {
+			close(client.updates)
+		}
+		close(r.done)
+	}()
 	for {
 		select {
 		case <-ctx.Done():
