@@ -38,3 +38,7 @@ func (c *Client) State(ctx context.Context) (State, error) {
 func (c *Client) Updates() <-chan State {
 	return c.updates
 }
+
+func (c *Client) Leave(ctx context.Context) error {
+	return c.room.leave(ctx)
+}

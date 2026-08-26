@@ -370,3 +370,26 @@ func TestClientReceiveStateWhenOpponentJoins(t *testing.T) {
 		)
 	}
 }
+
+func TestRoomClosesWhenClientLeaves(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	updates := client2.Updates()
+	if err := client1.Leave(context.Background()); err != nil {
+		t.Fatalf("leave room: %v", err)
+	}
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	for {
+		select {
+		case _, ok := <-updates:
+			if !ok {
+				return
+			}
+		case <-timer.C:
+			t.Fatal("updates channel did not close after room closed")
+		}
+	}
+}

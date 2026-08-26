@@ -44,6 +44,10 @@ type stateRequest struct {
 
 func (*stateRequest) isRequest() {}
 
+type leaveRequest struct{}
+
+func (*leaveRequest) isRequest() {}
+
 type Room struct {
 	requests chan request
 
@@ -126,6 +130,8 @@ func (r *Room) run(ctx context.Context) {
 				}
 			case *stateRequest:
 				req.reply <- currentState()
+			case *leaveRequest:
+				return
 			}
 		}
 	}
@@ -178,6 +184,24 @@ func (r *Room) state(ctx context.Context) (State, error) {
 		return State{}, ErrClosed
 	}
 	return <-reply, nil
+}
+
+func (r *Room) leave(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	req := &leaveRequest{}
+	select {
+	case r.requests <- req:
+		// room received request
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.done:
+		return ErrClosed
+	}
+	// wait until Room has completed all cleanup
+	<-r.done
+	return nil
 }
 
 func (r *Room) Join(ctx context.Context) (*Client, error) {
