@@ -71,6 +71,13 @@ func (r *Room) run(ctx context.Context) {
 		}
 		close(r.done)
 	}()
+	currentState := func() State {
+		return State{
+			Board:         game.Board(),
+			CurrentPlayer: game.CurrentPlayer(),
+			PlayerCount:   len(clients),
+		}
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -88,11 +95,7 @@ func (r *Room) run(ctx context.Context) {
 				}
 				if game.PlacePiece(req.pieceId, req.at) {
 					for _, client := range clients {
-						publishLatest(client.updates, State{
-							Board:         game.Board(),
-							CurrentPlayer: game.CurrentPlayer(),
-							PlayerCount:   len(clients),
-						})
+						publishLatest(client.updates, currentState())
 					}
 					req.reply <- nil
 					continue
@@ -114,11 +117,7 @@ func (r *Room) run(ctx context.Context) {
 				clients = append(clients, client)
 				// publish first
 				for _, client := range clients {
-					publishLatest(client.updates, State{
-						Board:         game.Board(),
-						CurrentPlayer: game.CurrentPlayer(),
-						PlayerCount:   len(clients),
-					})
+					publishLatest(client.updates, currentState())
 				}
 				// then return to join request
 				req.reply <- joinResult{
@@ -126,11 +125,7 @@ func (r *Room) run(ctx context.Context) {
 					err:    nil,
 				}
 			case *stateRequest:
-				req.reply <- State{
-					Board:         game.Board(),
-					CurrentPlayer: game.CurrentPlayer(),
-					PlayerCount:   len(clients),
-				}
+				req.reply <- currentState()
 			}
 		}
 	}
