@@ -91,6 +91,7 @@ func (r *Room) run(ctx context.Context) {
 						publishLatest(client.updates, State{
 							Board:         game.Board(),
 							CurrentPlayer: game.CurrentPlayer(),
+							PlayerCount:   len(clients),
 						})
 					}
 					req.reply <- nil
@@ -111,6 +112,15 @@ func (r *Room) run(ctx context.Context) {
 					client = newClient(r, blokus.Player2)
 				}
 				clients = append(clients, client)
+				// publish first
+				for _, client := range clients {
+					publishLatest(client.updates, State{
+						Board:         game.Board(),
+						CurrentPlayer: game.CurrentPlayer(),
+						PlayerCount:   len(clients),
+					})
+				}
+				// then return to join request
 				req.reply <- joinResult{
 					client: client,
 					err:    nil,
@@ -119,6 +129,7 @@ func (r *Room) run(ctx context.Context) {
 				req.reply <- State{
 					Board:         game.Board(),
 					CurrentPlayer: game.CurrentPlayer(),
+					PlayerCount:   len(clients),
 				}
 			}
 		}

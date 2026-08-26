@@ -340,8 +340,33 @@ func TestClientUpdatesCloseWhenRoomClose(t *testing.T) {
 	client := mustJoin(t, r)
 	updates := client.Updates()
 	r.Close()
-	_, ok := <-updates
-	if ok {
-		t.Fatal("expected updates channel to be closed")
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	for {
+		select {
+		case _, ok := <-updates:
+			if !ok {
+				return
+			}
+		case <-timer.C:
+			t.Fatal("updates channel did not close after room closed")
+		}
+	}
+}
+
+// be notice in code Room.Run() that
+// if change reply join request first then publish state, this test maybe failed
+func TestClientReceiveStateWhenOpponentJoins(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	updates := client1.Updates()
+	_ = mustJoin(t, r)
+	state := mustReceiveState(t, updates)
+	if state.PlayerCount != 2 {
+		t.Fatalf(
+			"expected player count 2, got %d",
+			state.PlayerCount,
+		)
 	}
 }

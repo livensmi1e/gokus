@@ -7,4 +7,5 @@ import "gokus/internal/blokus"
 type State struct {
 	Board         [][]blokus.Occupant
 	CurrentPlayer blokus.Occupant
+	PlayerCount   int
 }
