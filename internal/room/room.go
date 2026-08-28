@@ -80,6 +80,10 @@ func (r *Room) run(ctx context.Context) {
 			Board:         game.Board(),
 			CurrentPlayer: game.CurrentPlayer(),
 			PlayerCount:   len(clients),
+			PiecesLeft: map[blokus.Occupant][]int{
+				blokus.Player1: game.PiecesLeft(blokus.Player1),
+				blokus.Player2: game.PiecesLeft(blokus.Player2),
+			},
 		}
 	}
 	for {

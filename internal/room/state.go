@@ -8,4 +8,5 @@ type State struct {
 	Board         [][]blokus.Occupant
 	CurrentPlayer blokus.Occupant
 	PlayerCount   int
+	PiecesLeft    map[blokus.Occupant][]int
 }

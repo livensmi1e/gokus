@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"gokus/internal/blokus"
 	"gokus/internal/room"
 
@@ -13,6 +14,11 @@ type roomStateMsg struct {
 
 type roomClosedMsg struct{}
 
+type placeResultMsg struct {
+	pieceId int
+	err     error
+}
+
 func waitForRoomState(updates <-chan room.State) tea.Cmd {
 	return func() tea.Msg {
 		state, ok := <-updates
@@ -20,6 +26,20 @@ func waitForRoomState(updates <-chan room.State) tea.Cmd {
 			return roomClosedMsg{}
 		}
 		return roomStateMsg{state: state}
+	}
+}
+
+func placePieceCmd(client *room.Client, pieceId int, at blokus.Coordinate) tea.Cmd {
+	return func() tea.Msg {
+		err := client.Place(
+			context.Background(),
+			pieceId,
+			at,
+		)
+		return placeResultMsg{
+			pieceId: pieceId,
+			err:     err,
+		}
 	}
 }
 
@@ -74,12 +94,20 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cursorY = max(0, m.cursorY-1)
 		case "down":
 			m.cursorY = min(blokus.DUO_BOARD_SIZE-1, m.cursorY+1)
-			// case "tab":
-			// 	m.cycleSelectedPiece(1)
-			// case "shift+tab":
-			// 	m.cycleSelectedPiece(-1)
-			// case "enter":
-			// 	m.tryPlaceSelectedPiece()
+		case "tab":
+			m.cycleSelectedPiece(1)
+		case "shift+tab":
+			m.cycleSelectedPiece(-1)
+		case "enter":
+			m.selectedPieceId()
+			pieceId, ok := m.selectedPieceId()
+			if !ok {
+				m.status = "No pieces left."
+				return m, nil
+			}
+			at := blokus.NewCoordinate(m.cursorX, m.cursorY)
+			m.status = "Placing piece..."
+			return m, placePieceCmd(m.client, pieceId, at)
 			// case "r":
 			// 	m.rotateSelectedPiece()
 			// case "f":
@@ -102,6 +130,8 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "Game ready."
 		}
 		return m, waitForRoomState(m.client.Updates())
+	case placeResultMsg:
+
 	case roomClosedMsg:
 		m.status = "Room closed."
 		return m, tea.Quit
@@ -136,4 +166,28 @@ func (m *RemoteModel) renderBoardPanel() string {
 		board:      m.state.Board,
 		ghostCells: nil,
 	})
+}
+
+func (m *RemoteModel) cycleSelectedPiece(delta int) {
+	if m.client == nil {
+		return
+	}
+	pieces := m.state.PiecesLeft[m.client.Player()]
+	if len(pieces) == 0 {
+		m.selectedPieceIdx = 0
+		return
+	}
+	m.selectedPieceIdx = (m.selectedPieceIdx + delta + len(pieces)) % len(pieces)
+}
+
+func (m *RemoteModel) selectedPieceId() (int, bool) {
+	if m.client == nil {
+		return 0, false
+	}
+	pieces := m.state.PiecesLeft[m.client.Player()]
+	if len(pieces) == 0 {
+		return 0, false
+	}
+	m.selectedPieceIdx = min(m.selectedPieceIdx, len(pieces)-1)
+	return pieces[m.selectedPieceIdx], true
 }
