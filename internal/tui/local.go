@@ -28,9 +28,9 @@ const (
 	FOOTER = "Keys: arrows move | tab next | shift+tab previous | enter place | r rotate | f flip | s skip | n reset | q quit"
 )
 
-var _ tea.Model = &DouModel{}
+var _ tea.Model = &LocalModel{}
 
-type DouModel struct {
+type LocalModel struct {
 	game *blokus.DuoGame
 
 	styles Styles
@@ -45,19 +45,19 @@ type DouModel struct {
 	height int
 }
 
-func NewDuoModel() *DouModel {
-	return &DouModel{
+func NewLocalModel() *LocalModel {
+	return &LocalModel{
 		game:   blokus.NewDuoGame(),
 		styles: NewStyles(),
 		status: "Welcome to Blokus Duo! Player 1 goes first.",
 	}
 }
 
-func (m *DouModel) Init() tea.Cmd {
+func (m *LocalModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *DouModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *LocalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -99,34 +99,19 @@ func (m *DouModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *DouModel) View() tea.View {
-	headerText := normalizeHeaderArt(HEADER)
-	header := lipgloss.JoinVertical(
-		lipgloss.Center,
-		m.styles.Title.Render(headerText),
-		"",
-		m.styles.Subtle.Render(m.turnLabel()),
-	)
-
-	left := m.renderPlayerPanel(blokus.Player1)
-	center := m.renderBoardPanel()
-	right := m.renderPlayerPanel(blokus.Player2)
-
-	body := lipgloss.JoinHorizontal(lipgloss.Center, left, "  ", center, "  ", right)
-	bodyWidth := lipgloss.Width(body)
-	header = lipgloss.NewStyle().Width(bodyWidth).Align(lipgloss.Center).Render(header)
-	footer := m.styles.Subtle.Render(FOOTER)
-	status := m.styles.Text.Render(m.status)
-
-	ui := lipgloss.JoinVertical(lipgloss.Center, header, "", body, "", status, "", footer)
-	rooted := m.styles.Root.Render(ui)
-	if m.width > 0 && m.height > 0 {
-		rooted = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, rooted)
-	}
-	return tea.NewView(rooted)
+func (m *LocalModel) View() tea.View {
+	return renderView(m.styles, viewData{
+		turnLabel:  m.turnLabel(),
+		leftPanel:  m.renderPlayerPanel(blokus.Player1),
+		boardPanel: m.renderBoardPanel(),
+		rightPanel: m.renderPlayerPanel(blokus.Player2),
+		status:     m.status,
+		width:      m.width,
+		height:     m.height,
+	})
 }
 
-func (m *DouModel) turnLabel() string {
+func (m *LocalModel) turnLabel() string {
 	if m.game.IsOver() {
 		return "Game over"
 	}
@@ -136,7 +121,7 @@ func (m *DouModel) turnLabel() string {
 	return "Player 2's Turn"
 }
 
-func (m *DouModel) renderBoardPanel() string {
+func (m *LocalModel) renderBoardPanel() string {
 	var lines []string
 	board := m.game.Board()
 	ghostCells := m.selectedPieceGhostCells()
@@ -167,7 +152,7 @@ func (m *DouModel) renderBoardPanel() string {
 	return m.styles.Board.Render(content)
 }
 
-func (m *DouModel) renderPlayerPanel(player blokus.Occupant) string {
+func (m *LocalModel) renderPlayerPanel(player blokus.Occupant) string {
 	header := "Player 1 (White)"
 	if player == blokus.Player2 {
 		header = "Player 2 (Black)"
@@ -217,7 +202,7 @@ func (m *DouModel) renderPlayerPanel(player blokus.Occupant) string {
 	return m.styles.Panel.Width(panelWidth).Align(lipgloss.Center).Render(content)
 }
 
-func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool, used bool) string {
+func (m *LocalModel) renderPieceCard(player blokus.Occupant, id int, active bool, used bool) string {
 	preview := m.renderPiece(player, id, active, used)
 	label := fmt.Sprintf("%02d", id+1)
 	if active {
@@ -229,7 +214,7 @@ func (m *DouModel) renderPieceCard(player blokus.Occupant, id int, active bool, 
 	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(card)
 }
 
-func (m *DouModel) renderPiece(player blokus.Occupant, id int, active bool, used bool) string {
+func (m *LocalModel) renderPiece(player blokus.Occupant, id int, active bool, used bool) string {
 	shape := m.game.GetPieceShape(id)
 	if len(shape) == 0 {
 		return ""
@@ -270,7 +255,7 @@ func (m *DouModel) renderPiece(player blokus.Occupant, id int, active bool, used
 	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(block)
 }
 
-func (m *DouModel) cellStyle(cell blokus.Occupant) lipgloss.Style {
+func (m *LocalModel) cellStyle(cell blokus.Occupant) lipgloss.Style {
 	switch cell {
 	case blokus.Player1:
 		return m.styles.Player1
@@ -281,7 +266,7 @@ func (m *DouModel) cellStyle(cell blokus.Occupant) lipgloss.Style {
 	}
 }
 
-func (m *DouModel) isStartingPoint(x, y int) bool {
+func (m *LocalModel) isStartingPoint(x, y int) bool {
 	for _, c := range m.game.StartingPoints() {
 		if c.X() == x && c.Y() == y {
 			return true
@@ -290,7 +275,7 @@ func (m *DouModel) isStartingPoint(x, y int) bool {
 	return false
 }
 
-func (m *DouModel) cycleSelectedPiece(delta int) {
+func (m *LocalModel) cycleSelectedPiece(delta int) {
 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
 	if len(pieces) == 0 {
 		m.selectedPieceIdx = 0
@@ -299,7 +284,7 @@ func (m *DouModel) cycleSelectedPiece(delta int) {
 	m.selectedPieceIdx = (m.selectedPieceIdx + delta + len(pieces)) % len(pieces)
 }
 
-func (m *DouModel) tryPlaceSelectedPiece() {
+func (m *LocalModel) tryPlaceSelectedPiece() {
 	if m.game.IsOver() {
 		m.status = "Game is over. Press r to restart."
 		return
@@ -322,7 +307,7 @@ func (m *DouModel) tryPlaceSelectedPiece() {
 	m.status = "Invalid move for this piece at current cursor."
 }
 
-func (m *DouModel) rotateSelectedPiece() {
+func (m *LocalModel) rotateSelectedPiece() {
 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
 	if len(pieces) == 0 {
 		return
@@ -331,7 +316,7 @@ func (m *DouModel) rotateSelectedPiece() {
 	m.game.RotatePiece(pieces[idx])
 }
 
-func (m *DouModel) flipSelectedPiece() {
+func (m *LocalModel) flipSelectedPiece() {
 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
 	if len(pieces) == 0 {
 		return
@@ -340,7 +325,7 @@ func (m *DouModel) flipSelectedPiece() {
 	m.game.FlipPiece(pieces[idx])
 }
 
-func (m *DouModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
+func (m *LocalModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
 	ghostCells := make(map[blokus.Coordinate]struct{})
 	if m.game.IsOver() {
 		return ghostCells
@@ -363,65 +348,4 @@ func (m *DouModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
 	}
 
 	return ghostCells
-}
-
-func joinAsColumns(items []string, cols int, colWidth int, colGap int) string {
-	if len(items) == 0 {
-		return ""
-	}
-	rows := (len(items) + cols - 1) / cols
-	gap := lipgloss.NewStyle().Width(colGap).Render("")
-	var lines []string
-	for r := 0; r < rows; r++ {
-		rowItems := make([]string, 0, cols)
-		for c := 0; c < cols; c++ {
-			i := r*cols + c
-			if i >= len(items) {
-				rowItems = append(rowItems, lipgloss.NewStyle().Width(colWidth).Render(""))
-				continue
-			}
-			rowItems = append(rowItems, lipgloss.NewStyle().Width(colWidth).Align(lipgloss.Center).Render(items[i]))
-		}
-
-		rowParts := make([]string, 0, len(rowItems)*2-1)
-		for i, item := range rowItems {
-			if i > 0 {
-				rowParts = append(rowParts, gap)
-			}
-			rowParts = append(rowParts, item)
-		}
-
-		lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top, rowParts...))
-	}
-	return lipgloss.JoinVertical(lipgloss.Left, lines...)
-}
-
-func normalizeHeaderArt(s string) string {
-	trimmed := strings.Trim(s, "\n")
-	lines := strings.Split(trimmed, "\n")
-	for i, line := range lines {
-		lines[i] = strings.TrimRight(line, " \t")
-	}
-
-	minIndent := -1
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		indent := len(line) - len(strings.TrimLeft(line, " \t"))
-		if minIndent == -1 || indent < minIndent {
-			minIndent = indent
-		}
-	}
-
-	if minIndent <= 0 {
-		return trimmed
-	}
-
-	for i, line := range lines {
-		if len(line) >= minIndent {
-			lines[i] = line[minIndent:]
-		}
-	}
-	return strings.Join(lines, "\n")
 }
