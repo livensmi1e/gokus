@@ -393,3 +393,44 @@ func TestRoomClosesWhenClientLeaves(t *testing.T) {
 		}
 	}
 }
+
+func TestRegistryJoinsClientsToSameRoom(t *testing.T) {
+	registry := NewRegistry()
+	defer registry.Close()
+	client1, err := registry.Join(context.Background(), "alpha")
+	if err != nil {
+		t.Fatalf("join first client: %v", err)
+	}
+	client2, err := registry.Join(context.Background(), "alpha")
+	if err != nil {
+		t.Fatalf("join second client: %v", err)
+	}
+	if client1.Player() != blokus.Player1 {
+		t.Fatalf("expected first client to be Player1, got %v", client1.Player())
+	}
+	if client2.Player() != blokus.Player2 {
+		t.Fatalf("expected second client to be Player2, got %v", client2.Player())
+	}
+}
+
+func TestRegistryJoinAfterClose(t *testing.T) {
+	registry := NewRegistry()
+	registry.Close()
+	client, err := registry.Join(context.Background(), "alpha")
+	if !errors.Is(err, ErrClosed) {
+		t.Fatalf("expected ErrClosed, got %v", err)
+	}
+	if client != nil {
+		t.Fatal("expected nil client")
+	}
+}
+
+func TestRegistryCloseIsIdempotent(t *testing.T) {
+	registry := NewRegistry()
+	registry.Close()
+	registry.Close()
+}
+
+func TestRegistryConcurrentJoinsSameRoom(t *testing.T) {
+
+}
