@@ -2,6 +2,8 @@ package tui
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"gokus/internal/blokus"
 	"gokus/internal/room"
 
@@ -99,7 +101,6 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "shift+tab":
 			m.cycleSelectedPiece(-1)
 		case "enter":
-			m.selectedPieceId()
 			pieceId, ok := m.selectedPieceId()
 			if !ok {
 				m.status = "No pieces left."
@@ -131,6 +132,28 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, waitForRoomState(m.client.Updates())
 	case placeResultMsg:
+		switch {
+		case msg.err == nil:
+			m.selectedPieceIdx = 0
+			m.status = fmt.Sprintf(
+				"Placed piece %d.",
+				msg.pieceId,
+			)
+		case errors.Is(msg.err, room.ErrWaitingForOpponent):
+			m.status = "Waiting for opponent."
+		case errors.Is(msg.err, room.ErrOutOfTurn):
+			m.status = "It is not your turn."
+		case errors.Is(msg.err, room.ErrInvalidMove):
+			m.status = "Invalid move at current position."
+		case errors.Is(msg.err, room.ErrClosed):
+			m.status = "Room closed."
+		default:
+			m.status = fmt.Sprintf(
+				"Could not place piece: %v",
+				msg.err,
+			)
+		}
+		return m, nil
 
 	case roomClosedMsg:
 		m.status = "Room closed."
