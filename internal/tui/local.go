@@ -122,34 +122,10 @@ func (m *LocalModel) turnLabel() string {
 }
 
 func (m *LocalModel) renderBoardPanel() string {
-	var lines []string
-	board := m.game.Board()
-	ghostCells := m.selectedPieceGhostCells()
-	for y := 0; y < len(board); y++ {
-		var row strings.Builder
-		for x := 0; x < len(board[y]); x++ {
-			cell := board[y][x]
-			style := m.cellStyle(cell)
-			text := "  "
-			if m.isStartingPoint(x, y) && cell == blokus.Empty {
-				style = m.styles.Start
-			}
-			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell == blokus.Empty {
-				style = m.styles.Ghost
-			}
-			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell != blokus.Empty {
-				style = m.styles.Intersect
-			}
-			// if m.cursorX == x && m.cursorY == y {
-			// 	style = m.styles.Cursor
-			// 	text = "><"
-			// }
-			row.WriteString(style.Render(text))
-		}
-		lines = append(lines, row.String())
-	}
-	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
-	return m.styles.Board.Render(content)
+	return renderBoard(m.styles, boardViewData{
+		board:      m.game.Board(),
+		ghostCells: m.selectedPieceGhostCells(),
+	})
 }
 
 func (m *LocalModel) renderPlayerPanel(player blokus.Occupant) string {
@@ -253,26 +229,6 @@ func (m *LocalModel) renderPiece(player blokus.Occupant, id int, active bool, us
 
 	block := lipgloss.JoinVertical(lipgloss.Left, lines...)
 	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(block)
-}
-
-func (m *LocalModel) cellStyle(cell blokus.Occupant) lipgloss.Style {
-	switch cell {
-	case blokus.Player1:
-		return m.styles.Player1
-	case blokus.Player2:
-		return m.styles.Player2
-	default:
-		return m.styles.Empty
-	}
-}
-
-func (m *LocalModel) isStartingPoint(x, y int) bool {
-	for _, c := range m.game.StartingPoints() {
-		if c.X() == x && c.Y() == y {
-			return true
-		}
-	}
-	return false
 }
 
 func (m *LocalModel) cycleSelectedPiece(delta int) {

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"gokus/internal/blokus"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -39,6 +40,42 @@ func renderView(styles Styles, data viewData) tea.View {
 		rooted = lipgloss.Place(data.width, data.height, lipgloss.Center, lipgloss.Center, rooted)
 	}
 	return tea.NewView(rooted)
+}
+
+type boardViewData struct {
+	board      [][]blokus.Occupant
+	ghostCells map[blokus.Coordinate]struct{}
+}
+
+func renderBoard(styles Styles, data boardViewData) string {
+	var lines []string
+	board := data.board
+	ghostCells := data.ghostCells
+	for y := 0; y < len(board); y++ {
+		var row strings.Builder
+		for x := 0; x < len(board[y]); x++ {
+			cell := board[y][x]
+			style := cellStyle(styles, cell)
+			text := "  "
+			if isStartingPoint(blokus.STARTING_POINTS, x, y) && cell == blokus.Empty {
+				style = styles.Start
+			}
+			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell == blokus.Empty {
+				style = styles.Ghost
+			}
+			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell != blokus.Empty {
+				style = styles.Intersect
+			}
+			// if m.cursorX == x && m.cursorY == y {
+			// 	style = m.styles.Cursor
+			// 	text = "><"
+			// }
+			row.WriteString(style.Render(text))
+		}
+		lines = append(lines, row.String())
+	}
+	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
+	return styles.Board.Render(content)
 }
 
 func joinAsColumns(items []string, cols int, colWidth int, colGap int) string {
@@ -100,4 +137,24 @@ func normalizeHeaderArt(s string) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func cellStyle(styles Styles, cell blokus.Occupant) lipgloss.Style {
+	switch cell {
+	case blokus.Player1:
+		return styles.Player1
+	case blokus.Player2:
+		return styles.Player2
+	default:
+		return styles.Empty
+	}
+}
+
+func isStartingPoint(starts []blokus.Coordinate, x, y int) bool {
+	for _, c := range starts {
+		if c.X() == x && c.Y() == y {
+			return true
+		}
+	}
+	return false
 }

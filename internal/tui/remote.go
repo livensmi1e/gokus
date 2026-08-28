@@ -113,7 +113,7 @@ func (m *RemoteModel) View() tea.View {
 	return renderView(m.styles, viewData{
 		turnLabel:  m.turnLabel(),
 		leftPanel:  "",
-		boardPanel: "",
+		boardPanel: m.renderBoardPanel(),
 		rightPanel: "",
 		status:     m.status,
 		width:      m.width,
@@ -129,4 +129,11 @@ func (m *RemoteModel) turnLabel() string {
 		return "Player 1's Turn"
 	}
 	return "Player 2's Turn"
+}
+
+func (m *RemoteModel) renderBoardPanel() string {
+	return renderBoard(m.styles, boardViewData{
+		board:      m.state.Board,
+		ghostCells: nil,
+	})
 }
