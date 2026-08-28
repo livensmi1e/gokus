@@ -431,6 +431,7 @@ func TestRegistryCloseIsIdempotent(t *testing.T) {
 	registry.Close()
 }
 
+// todo
 func TestRegistryConcurrentJoinsSameRoom(t *testing.T) {
 
 }
