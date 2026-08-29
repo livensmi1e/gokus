@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"gokus/internal/blokus"
 	"strings"
 
@@ -77,6 +78,113 @@ func renderBoard(styles Styles, data boardViewData) string {
 	}
 	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
 	return styles.Board.Render(content)
+}
+
+type playerPanelViewData struct {
+	player           blokus.Occupant
+	isCurrentPlayer  bool
+	piecesLeft       []int
+	squaresLeft      int
+	activePieceID    int
+	hasActivePieceID bool
+}
+
+func renderPlayerPanel(styles Styles, data playerPanelViewData) string {
+	header := "Player 1 (White)"
+	if data.player == blokus.Player2 {
+		header = "Player 2 (Black)"
+	}
+	scoreLine := fmt.Sprintf("Pieces: %d | Squares: %d", len(data.piecesLeft), data.squaresLeft)
+	availablePieces := make(map[int]struct{}, len(data.piecesLeft))
+	for _, pieceID := range data.piecesLeft {
+		availablePieces[pieceID] = struct{}{}
+	}
+	var cards []string
+	for pieceID := 0; pieceID < 21; pieceID++ {
+		_, available := availablePieces[pieceID]
+		active := data.hasActivePieceID && pieceID == data.activePieceID
+		cards = append(cards, renderPieceCard(styles, data.player, pieceID, active, !available))
+	}
+	if len(cards) == 0 {
+		cards = []string{styles.Subtle.Render("No pieces left")}
+	}
+	piecesGrid := joinAsColumns(cards, pieceCols, pieceCardWidth, pieceColGap)
+	titleStyle := styles.Title
+	if data.player == blokus.Player2 {
+		titleStyle = titleStyle.Foreground(lipgloss.Color("#CFCFD6"))
+	}
+	metaStyle := styles.Subtle
+	if data.isCurrentPlayer {
+		metaStyle = styles.Text
+	}
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		titleStyle.Render(header),
+		metaStyle.Render(scoreLine),
+		"",
+		piecesGrid,
+	)
+	panelWidth := pieceCols*pieceCardWidth + (pieceCols-1)*pieceColGap + 4 // padding and border on both sides
+	return styles.Panel.Width(panelWidth).Align(lipgloss.Center).Render(content)
+}
+
+func renderPieceCard(styles Styles, player blokus.Occupant, pieceID int, active, used bool) string {
+	preview := renderPiece(styles, player, pieceID, active, used)
+	label := fmt.Sprintf("%02d", pieceID+1)
+	if active {
+		label = styles.Cursor.Render(label)
+	} else {
+		label = styles.Subtle.Render(label)
+	}
+	card := lipgloss.JoinVertical(lipgloss.Center, preview, label)
+	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(card)
+}
+
+func renderPiece(styles Styles, player blokus.Occupant, pieceID int, active bool, used bool) string {
+	shape := blokus.PieceShape(pieceID)
+	if len(shape) == 0 {
+		return ""
+	}
+	w, h := pieceDimensions(shape)
+	filled := styles.Player1
+	if used {
+		filled = styles.Used
+	} else if player == blokus.Player2 {
+		filled = styles.Player2
+	}
+	if active {
+		filled = styles.Ghost
+	}
+	empty := lipgloss.NewStyle()
+	coords := make(map[string]struct{}, len(shape))
+	for _, c := range shape {
+		coords[fmt.Sprintf("%d:%d", c.X(), c.Y())] = struct{}{}
+	}
+	var lines []string
+	for y := 0; y < h; y++ {
+		var row strings.Builder
+		for x := 0; x < w; x++ {
+			key := fmt.Sprintf("%d:%d", x, y)
+			if _, ok := coords[key]; ok {
+				row.WriteString(filled.Render("  "))
+				continue
+			}
+			row.WriteString(empty.Render("  "))
+		}
+		lines = append(lines, row.String())
+	}
+	block := lipgloss.JoinVertical(lipgloss.Left, lines...)
+	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(block)
+}
+
+func pieceDimensions(
+	shape []blokus.Coordinate,
+) (width, height int) {
+	for _, cell := range shape {
+		width = max(width, cell.X()+1)
+		height = max(height, cell.Y()+1)
+	}
+	return width, height
 }
 
 func joinAsColumns(items []string, cols int, colWidth int, colGap int) string {

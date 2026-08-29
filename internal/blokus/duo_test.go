@@ -155,14 +155,13 @@ func TestGetPieceWidthAndHeightForUsedPiece(t *testing.T) {
 	}
 }
 
-func TestGetPieceShape(t *testing.T) {
-	g := newTestGame()
-	shape := g.GetPieceShape(0)
+func TestPieceShape(t *testing.T) {
+	shape := PieceShape(0)
 	if len(shape) != 1 {
 		t.Fatal("monomino should have 1 cell")
 	}
 
-	lShape := g.GetPieceShape(3)
+	lShape := PieceShape(3)
 	if len(lShape) != 3 {
 		t.Fatal("piece 3 should have 3 cells")
 	}
@@ -184,7 +183,7 @@ func TestGetPieceShape(t *testing.T) {
 	}
 
 	shape[0].x = 999
-	shape2 := g.GetPieceShape(0)
+	shape2 := PieceShape(0)
 	if shape2[0].x == 999 {
 		t.Fatal("shape should be immutable")
 	}

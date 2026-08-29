@@ -84,6 +84,10 @@ func (r *Room) run(ctx context.Context) {
 				blokus.Player1: game.PiecesLeft(blokus.Player1),
 				blokus.Player2: game.PiecesLeft(blokus.Player2),
 			},
+			SquaresLeft: map[blokus.Occupant]int{
+				blokus.Player1: game.Score(blokus.Player1),
+				blokus.Player2: game.Score(blokus.Player2),
+			},
 		}
 	}
 	for {

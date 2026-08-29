@@ -173,9 +173,9 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *RemoteModel) View() tea.View {
 	return renderView(m.styles, viewData{
 		turnLabel:  m.turnLabel(),
-		leftPanel:  "",
+		leftPanel:  m.renderPlayerPanel(blokus.Player1),
 		boardPanel: m.renderBoardPanel(),
-		rightPanel: "",
+		rightPanel: m.renderPlayerPanel(blokus.Player2),
 		status:     m.status,
 		width:      m.width,
 		height:     m.height,
@@ -198,6 +198,23 @@ func (m *RemoteModel) renderBoardPanel() string {
 		ghostCells: nil,
 		cursor:     blokus.NewCoordinate(m.cursorX, m.cursorY),
 	})
+}
+
+func (m *RemoteModel) renderPlayerPanel(player blokus.Occupant) string {
+	piecesLeft := m.state.PiecesLeft[player]
+	isCurrentPlayer := m.state.CurrentPlayer == player
+	data := playerPanelViewData{
+		player:          player,
+		piecesLeft:      piecesLeft,
+		squaresLeft:     m.state.SquaresLeft[player],
+		isCurrentPlayer: isCurrentPlayer,
+	}
+	if m.client != nil && player == m.client.Player() && isCurrentPlayer && len(piecesLeft) > 0 {
+		idx := min(m.selectedPieceIdx, len(piecesLeft)-1) // should we even need this min check here?
+		data.activePieceID = piecesLeft[idx]
+		data.hasActivePieceID = true
+	}
+	return renderPlayerPanel(m.styles, data)
 }
 
 func (m *RemoteModel) cycleSelectedPiece(delta int) {

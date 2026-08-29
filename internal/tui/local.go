@@ -3,10 +3,8 @@ package tui
 import (
 	"fmt"
 	"gokus/internal/blokus"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -130,106 +128,20 @@ func (m *LocalModel) renderBoardPanel() string {
 }
 
 func (m *LocalModel) renderPlayerPanel(player blokus.Occupant) string {
-	header := "Player 1 (White)"
-	if player == blokus.Player2 {
-		header = "Player 2 (Black)"
-	}
-
-	pieceCount := m.game.Score(player)
 	piecesLeft := m.game.PiecesLeft(player)
-	scoreLine := fmt.Sprintf("Pieces: %d | Squares: %d", len(piecesLeft), pieceCount)
-
-	activePieceID := -1
-	if player == m.game.CurrentPlayer() && len(piecesLeft) > 0 {
+	isCurrentPlayer := m.game.CurrentPlayer() == player
+	data := playerPanelViewData{
+		player:          player,
+		piecesLeft:      piecesLeft,
+		squaresLeft:     m.game.Score(player),
+		isCurrentPlayer: isCurrentPlayer,
+	}
+	if isCurrentPlayer && len(piecesLeft) > 0 {
 		idx := min(m.selectedPieceIdx, len(piecesLeft)-1) // should we even need this min check here?
-		activePieceID = piecesLeft[idx]
+		data.activePieceID = piecesLeft[idx]
+		data.hasActivePieceID = true
 	}
-
-	var cards []string
-	for id := 0; id < 21; id++ {
-		active := id == activePieceID
-		used := m.game.IsPieceUsed(player, id)
-		cards = append(cards, m.renderPieceCard(player, id, active, used))
-	}
-	if len(cards) == 0 {
-		cards = []string{m.styles.Subtle.Render("No pieces left")}
-	}
-
-	piecesGrid := joinAsColumns(cards, pieceCols, pieceCardWidth, pieceColGap)
-
-	titleStyle := m.styles.Title
-	if player == blokus.Player2 {
-		titleStyle = titleStyle.Foreground(lipgloss.Color("#CFCFD6"))
-	}
-
-	metaStyle := m.styles.Subtle
-	if player == m.game.CurrentPlayer() {
-		metaStyle = m.styles.Text
-	}
-
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		titleStyle.Render(header),
-		metaStyle.Render(scoreLine),
-		"",
-		piecesGrid,
-	)
-
-	panelWidth := pieceCols*pieceCardWidth + (pieceCols-1)*pieceColGap + 4 // padding and border on both sides
-	return m.styles.Panel.Width(panelWidth).Align(lipgloss.Center).Render(content)
-}
-
-func (m *LocalModel) renderPieceCard(player blokus.Occupant, id int, active bool, used bool) string {
-	preview := m.renderPiece(player, id, active, used)
-	label := fmt.Sprintf("%02d", id+1)
-	if active {
-		label = m.styles.Cursor.Render(label)
-	} else {
-		label = m.styles.Subtle.Render(label)
-	}
-	card := lipgloss.JoinVertical(lipgloss.Center, preview, label)
-	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(card)
-}
-
-func (m *LocalModel) renderPiece(player blokus.Occupant, id int, active bool, used bool) string {
-	shape := m.game.GetPieceShape(id)
-	if len(shape) == 0 {
-		return ""
-	}
-	w, h := m.game.GetPieceWidthAndHeight(player, id)
-
-	filled := m.styles.Player1
-	if used {
-		filled = m.styles.Used
-	} else if player == blokus.Player2 {
-		filled = m.styles.Player2
-	}
-	if active {
-		filled = m.styles.Ghost
-	}
-	empty := lipgloss.NewStyle()
-
-	coords := make(map[string]struct{}, len(shape))
-	for _, c := range shape {
-		coords[fmt.Sprintf("%d:%d", c.X(), c.Y())] = struct{}{}
-	}
-
-	var lines []string
-	for y := 0; y < h; y++ {
-		var row strings.Builder
-		for x := 0; x < w; x++ {
-			key := fmt.Sprintf("%d:%d", x, y)
-			if _, ok := coords[key]; ok {
-				row.WriteString(filled.Render("  "))
-				continue
-			}
-			row.WriteString(empty.Render("  "))
-		}
-		lines = append(lines, row.String())
-	}
-
-	block := lipgloss.JoinVertical(lipgloss.Left, lines...)
-	return lipgloss.NewStyle().Width(pieceCardWidth).Align(lipgloss.Center).Render(block)
+	return renderPlayerPanel(m.styles, data)
 }
 
 func (m *LocalModel) cycleSelectedPiece(delta int) {

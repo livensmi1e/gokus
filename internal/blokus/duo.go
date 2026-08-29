@@ -155,9 +155,8 @@ func (g *DuoGame) PiecesLeft(player Occupant) []int {
 	return ids
 }
 
-// GetPieceShape return the shape of a piece via coordinate of cells.
-// This is a immutable function - returns the original unmodified shape
-func (g *DuoGame) GetPieceShape(id int) []Coordinate {
+// PieceShape return the shape of a piece via coordinate of cells.
+func PieceShape(id int) []Coordinate {
 	pieces := getPiecesAtStart()
 	pc := pieces[id]
 	cells := make([]Coordinate, len(pc.cells))
