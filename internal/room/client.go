@@ -25,10 +25,10 @@ func (c *Client) Player() blokus.Occupant {
 
 func (c *Client) Place(
 	ctx context.Context,
-	pieceId int,
+	pieceID int,
 	at blokus.Coordinate,
 ) error {
-	return c.room.place(ctx, c.player, pieceId, at)
+	return c.room.place(ctx, c.player, pieceID, at)
 }
 
 func (c *Client) State(ctx context.Context) (State, error) {

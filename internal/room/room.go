@@ -20,7 +20,7 @@ type request interface {
 
 type placeRequest struct {
 	player  blokus.Occupant
-	pieceId int
+	pieceID int
 	at      blokus.Coordinate
 	reply   chan error
 }
@@ -101,7 +101,7 @@ func (r *Room) run(ctx context.Context) {
 					req.reply <- ErrOutOfTurn
 					continue
 				}
-				if game.PlacePiece(req.pieceId, req.at) {
+				if game.PlacePiece(req.pieceID, req.at) {
 					for _, client := range clients {
 						publishLatest(client.updates, currentState())
 					}
@@ -144,7 +144,7 @@ func (r *Room) run(ctx context.Context) {
 func (r *Room) place(
 	ctx context.Context,
 	player blokus.Occupant,
-	pieceId int,
+	pieceID int,
 	at blokus.Coordinate,
 ) error {
 	if err := ctx.Err(); err != nil {
@@ -153,7 +153,7 @@ func (r *Room) place(
 	reply := make(chan error, 1) // buffered to avoid room block forever because it send reply but Place caller already canceled
 	req := &placeRequest{
 		player:  player,
-		pieceId: pieceId,
+		pieceID: pieceID,
 		at:      at,
 		reply:   reply,
 	}

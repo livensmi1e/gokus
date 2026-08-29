@@ -57,7 +57,7 @@ func TestPlacePieceCmdReturnsResultMessage(t *testing.T) {
 	if result.err != nil {
 		t.Fatalf("place piece: %v", result.err)
 	}
-	if result.pieceId != 0 {
-		t.Fatalf("expected piece ID 0, got %d", result.pieceId)
+	if result.pieceID != 0 {
+		t.Fatalf("expected piece ID 0, got %d", result.pieceID)
 	}
 }

@@ -17,7 +17,7 @@ type roomStateMsg struct {
 type roomClosedMsg struct{}
 
 type placeResultMsg struct {
-	pieceId int
+	pieceID int
 	err     error
 }
 
@@ -31,15 +31,15 @@ func waitForRoomState(updates <-chan room.State) tea.Cmd {
 	}
 }
 
-func placePieceCmd(client *room.Client, pieceId int, at blokus.Coordinate) tea.Cmd {
+func placePieceCmd(client *room.Client, pieceID int, at blokus.Coordinate) tea.Cmd {
 	return func() tea.Msg {
 		err := client.Place(
 			context.Background(),
-			pieceId,
+			pieceID,
 			at,
 		)
 		return placeResultMsg{
-			pieceId: pieceId,
+			pieceID: pieceID,
 			err:     err,
 		}
 	}
@@ -57,6 +57,7 @@ type RemoteModel struct {
 	cursorY int
 
 	selectedPieceIdx int
+	placing          bool
 	status           string
 
 	width  int
@@ -101,26 +102,30 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "shift+tab":
 			m.cycleSelectedPiece(-1)
 		case "enter":
-			pieceId, ok := m.selectedPieceId()
+			if m.placing {
+				return m, nil
+			}
+			pieceID, ok := m.selectedPieceID()
 			if !ok {
 				m.status = "No pieces left."
 				return m, nil
 			}
 			at := blokus.NewCoordinate(m.cursorX, m.cursorY)
+			m.placing = true
 			m.status = "Placing piece..."
-			return m, placePieceCmd(m.client, pieceId, at)
+			return m, placePieceCmd(m.client, pieceID, at)
 			// case "r":
 			// 	m.rotateSelectedPiece()
 			// case "f":
 			// 	m.flipSelectedPiece()
 			// case "s":
 			// 	m.game.SkipTurn()
-			// 	m.selectedPieceIdx = 0
+			// 	m.selectedPieceIDx = 0
 			// 	m.status = "Turn skipped."
 			// case "n":
 			// 	m.game = blokus.NewDuoGame()
 			// 	m.cursorX, m.cursorY = 0, 0
-			// 	m.selectedPieceIdx = 0
+			// 	m.selectedPieceIDx = 0
 			// 	m.status = "New game started. Enjoy!"
 		}
 	case roomStateMsg:
@@ -135,12 +140,13 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, waitForRoomState(m.client.Updates())
 	case placeResultMsg:
+		m.placing = false
 		switch {
 		case msg.err == nil:
 			m.selectedPieceIdx = 0
 			m.status = fmt.Sprintf(
 				"Placed piece %d.",
-				msg.pieceId,
+				msg.pieceID,
 			)
 		case errors.Is(msg.err, room.ErrWaitingForOpponent):
 			m.status = "Waiting for opponent."
@@ -205,7 +211,7 @@ func (m *RemoteModel) cycleSelectedPiece(delta int) {
 	m.selectedPieceIdx = (m.selectedPieceIdx + delta + len(pieces)) % len(pieces)
 }
 
-func (m *RemoteModel) selectedPieceId() (int, bool) {
+func (m *RemoteModel) selectedPieceID() (int, bool) {
 	if m.client == nil {
 		return 0, false
 	}
