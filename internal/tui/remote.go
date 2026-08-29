@@ -124,10 +124,13 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// 	m.status = "New game started. Enjoy!"
 		}
 	case roomStateMsg:
+		previousPlayerCount := m.state.PlayerCount
 		m.state = msg.state
-		if m.state.PlayerCount < 2 {
+		switch {
+		case m.state.PlayerCount < 2:
 			m.status = "Waiting for opponent..."
-		} else {
+		case previousPlayerCount < 2:
+			// only update status when room is ready in the first time
 			m.status = "Game ready."
 		}
 		return m, waitForRoomState(m.client.Updates())
@@ -154,7 +157,6 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		return m, nil
-
 	case roomClosedMsg:
 		m.status = "Room closed."
 		return m, tea.Quit
