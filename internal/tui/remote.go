@@ -196,6 +196,7 @@ func (m *RemoteModel) renderBoardPanel() string {
 	return renderBoard(m.styles, boardViewData{
 		board:      m.state.Board,
 		ghostCells: nil,
+		cursor:     blokus.NewCoordinate(m.cursorX, m.cursorY),
 	})
 }
 

@@ -125,6 +125,7 @@ func (m *LocalModel) renderBoardPanel() string {
 	return renderBoard(m.styles, boardViewData{
 		board:      m.game.Board(),
 		ghostCells: m.selectedPieceGhostCells(),
+		cursor:     blokus.NewCoordinate(m.cursorX, m.cursorY),
 	})
 }
 

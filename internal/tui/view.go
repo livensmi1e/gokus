@@ -45,6 +45,7 @@ func renderView(styles Styles, data viewData) tea.View {
 type boardViewData struct {
 	board      [][]blokus.Occupant
 	ghostCells map[blokus.Coordinate]struct{}
+	cursor     blokus.Coordinate
 }
 
 func renderBoard(styles Styles, data boardViewData) string {
@@ -66,8 +67,8 @@ func renderBoard(styles Styles, data boardViewData) string {
 			if _, ok := ghostCells[blokus.NewCoordinate(x, y)]; ok && cell != blokus.Empty {
 				style = styles.Intersect
 			}
-			// if m.cursorX == x && m.cursorY == y {
-			// 	style = m.styles.Cursor
+			// if data.cursor.X() == x && data.cursor.Y() == y {
+			// 	style = styles.Cursor
 			// 	text = "><"
 			// }
 			row.WriteString(style.Render(text))
