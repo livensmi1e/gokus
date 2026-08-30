@@ -31,6 +31,10 @@ type flipResultMsg struct {
 	err     error
 }
 
+type skipResultMsg struct {
+	err error
+}
+
 func waitForRoomState(updates <-chan room.State) tea.Cmd {
 	return func() tea.Msg {
 		state, ok := <-updates
@@ -77,6 +81,15 @@ func flipPieceCmd(client *room.Client, pieceID int) tea.Cmd {
 		return flipResultMsg{
 			pieceID: pieceID,
 			err:     err,
+		}
+	}
+}
+
+func skipTurnCmd(client *room.Client) tea.Cmd {
+	return func() tea.Msg {
+		err := client.Skip(context.Background())
+		return skipResultMsg{
+			err: err,
 		}
 	}
 }
@@ -170,15 +183,20 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cmdPending = true
 			m.status = "Flipping piece..."
 			return m, flipPieceCmd(m.client, pieceID)
-			// case "s":
-			// 	m.game.SkipTurn()
-			// 	m.selectedPieceIDx = 0
-			// 	m.status = "Turn skipped."
+		case "s":
+			if m.cmdPending {
+				return m, nil
+			}
+			m.cmdPending = true
+			m.status = "Skipping turn..."
+			return m, skipTurnCmd(m.client)
 		}
 	case roomStateMsg:
 		previousPlayerCount := m.state.PlayerCount
 		m.state = msg.state
 		switch {
+		case m.state.GameOver:
+			m.status = "Game over."
 		case m.state.PlayerCount < 2:
 			m.status = "Waiting for opponent..."
 		case previousPlayerCount < 2:
@@ -195,6 +213,8 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				"Placed piece %d.",
 				msg.pieceID,
 			)
+		case errors.Is(msg.err, room.ErrGameOver):
+			m.status = "Game over."
 		case errors.Is(msg.err, room.ErrWaitingForOpponent):
 			m.status = "Waiting for opponent."
 		case errors.Is(msg.err, room.ErrOutOfTurn):
@@ -216,6 +236,8 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				"Rotated piece %d.",
 				msg.pieceID,
 			)
+		case errors.Is(msg.err, room.ErrGameOver):
+			m.status = "Game over."
 		case errors.Is(msg.err, room.ErrWaitingForOpponent):
 			m.status = "Waiting for opponent."
 		case errors.Is(msg.err, room.ErrOutOfTurn):
@@ -239,6 +261,8 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				"Flipped piece %d.",
 				msg.pieceID,
 			)
+		case errors.Is(msg.err, room.ErrGameOver):
+			m.status = "Game over."
 		case errors.Is(msg.err, room.ErrWaitingForOpponent):
 			m.status = "Waiting for opponent."
 		case errors.Is(msg.err, room.ErrOutOfTurn):
@@ -252,6 +276,31 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			m.status = fmt.Sprintf(
 				"Could not flip piece: %v",
+				msg.err,
+			)
+		}
+		return m, nil
+	case skipResultMsg:
+		m.cmdPending = false
+		switch {
+		case msg.err == nil:
+			m.selectedPieceIdx = 0
+			if m.state.GameOver {
+				m.status = "Game over."
+			} else {
+				m.status = "Turn skipped."
+			}
+		case errors.Is(msg.err, room.ErrWaitingForOpponent):
+			m.status = "Waiting for opponent."
+		case errors.Is(msg.err, room.ErrOutOfTurn):
+			m.status = "It is not your turn."
+		case errors.Is(msg.err, room.ErrGameOver):
+			m.status = "Game over."
+		case errors.Is(msg.err, room.ErrClosed):
+			m.status = "Room closed."
+		default:
+			m.status = fmt.Sprintf(
+				"Could not skip turn: %v",
 				msg.err,
 			)
 		}
@@ -276,6 +325,9 @@ func (m *RemoteModel) View() tea.View {
 }
 
 func (m *RemoteModel) turnLabel() string {
+	if m.state.GameOver {
+		return "Game over"
+	}
 	if m.state.PlayerCount < 2 {
 		return "Waiting for opponent"
 	}
@@ -324,6 +376,9 @@ func (m *RemoteModel) cycleSelectedPiece(delta int) {
 
 func (m *RemoteModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
 	ghostCells := make(map[blokus.Coordinate]struct{})
+	if m.state.GameOver {
+		return ghostCells
+	}
 	if m.client == nil {
 		return ghostCells
 	}

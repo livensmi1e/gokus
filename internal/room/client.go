@@ -45,6 +45,12 @@ func (c *Client) Flip(
 	return c.room.flip(ctx, c.player, pieceID)
 }
 
+func (c *Client) Skip(
+	ctx context.Context,
+) error {
+	return c.room.skip(ctx, c.player)
+}
+
 func (c *Client) State(ctx context.Context) (State, error) {
 	return c.room.state(ctx)
 }

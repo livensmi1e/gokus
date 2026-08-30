@@ -13,6 +13,7 @@ var (
 	ErrOutOfTurn          = errors.New("out of turn")
 	ErrWaitingForOpponent = errors.New("waiting for opponent")
 	ErrPieceUnavailable   = errors.New("piece unavailable")
+	ErrGameOver           = errors.New("game over")
 )
 
 type request interface {
@@ -65,6 +66,13 @@ type flipRequest struct {
 
 func (*flipRequest) isRequest() {}
 
+type skipRequest struct {
+	player blokus.Occupant
+	reply  chan error
+}
+
+func (*skipRequest) isRequest() {}
+
 type Room struct {
 	requests chan request
 
@@ -115,6 +123,7 @@ func (r *Room) run(ctx context.Context) {
 				blokus.Player2: game.Score(blokus.Player2),
 			},
 			CurrentPieceShapes: currentPieceShapes,
+			GameOver:           game.IsOver(),
 		}
 	}
 	for {
@@ -124,6 +133,10 @@ func (r *Room) run(ctx context.Context) {
 		case req := <-r.requests:
 			switch req := req.(type) {
 			case *placeRequest:
+				if game.IsOver() {
+					req.reply <- ErrGameOver
+					continue
+				}
 				if len(clients) < 2 {
 					req.reply <- ErrWaitingForOpponent
 					continue
@@ -145,6 +158,10 @@ func (r *Room) run(ctx context.Context) {
 				}
 				req.reply <- ErrInvalidMove
 			case *rotateRequest:
+				if game.IsOver() {
+					req.reply <- ErrGameOver
+					continue
+				}
 				if len(clients) < 2 {
 					req.reply <- ErrWaitingForOpponent
 					continue
@@ -163,6 +180,10 @@ func (r *Room) run(ctx context.Context) {
 				}
 				req.reply <- nil
 			case *flipRequest:
+				if game.IsOver() {
+					req.reply <- ErrGameOver
+					continue
+				}
 				if len(clients) < 2 {
 					req.reply <- ErrWaitingForOpponent
 					continue
@@ -176,6 +197,24 @@ func (r *Room) run(ctx context.Context) {
 					continue
 				}
 				game.FlipPiece(req.pieceID)
+				for _, client := range clients {
+					publishLatest(client.updates, currentState())
+				}
+				req.reply <- nil
+			case *skipRequest:
+				if game.IsOver() {
+					req.reply <- ErrGameOver
+					continue
+				}
+				if len(clients) < 2 {
+					req.reply <- ErrWaitingForOpponent
+					continue
+				}
+				if req.player != game.CurrentPlayer() {
+					req.reply <- ErrOutOfTurn
+					continue
+				}
+				game.SkipTurn()
 				for _, client := range clients {
 					publishLatest(client.updates, currentState())
 				}
@@ -273,6 +312,25 @@ func (r *Room) flip(ctx context.Context, player blokus.Occupant, pieceID int) er
 		player:  player,
 		pieceID: pieceID,
 		reply:   reply,
+	}
+	select {
+	case r.requests <- req:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.done:
+		return ErrClosed
+	}
+	return <-reply
+}
+
+func (r *Room) skip(ctx context.Context, player blokus.Occupant) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	reply := make(chan error, 1)
+	req := &skipRequest{
+		player: player,
+		reply:  reply,
 	}
 	select {
 	case r.requests <- req:

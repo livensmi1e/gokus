@@ -498,3 +498,59 @@ func TestClientFlipUpdatesCurrentPieceShape(t *testing.T) {
 		)
 	}
 }
+
+func TestClientSkipChangesTurn(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	if err := client1.Skip(context.Background()); err != nil {
+		t.Fatalf("skip turn: %v", err)
+	}
+	state, err := client2.State(context.Background())
+	if err != nil {
+		t.Fatalf("get state: %v", err)
+	}
+	if state.CurrentPlayer != blokus.Player2 {
+		t.Fatalf(
+			"expected Player2, got %v",
+			state.CurrentPlayer,
+		)
+	}
+	if state.GameOver {
+		t.Fatal("expected game to continue")
+	}
+}
+
+func TestStateReportsGameOverAfterBothPlayersSkip(
+	t *testing.T,
+) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	client2 := mustJoin(t, r)
+	if err := client1.Skip(context.Background()); err != nil {
+		t.Fatalf("player 1 skip: %v", err)
+	}
+	if err := client2.Skip(context.Background()); err != nil {
+		t.Fatalf("player 2 skip: %v", err)
+	}
+	state, err := client1.State(context.Background())
+	if err != nil {
+		t.Fatalf("get state: %v", err)
+	}
+	if !state.GameOver {
+		t.Fatal("expected game over")
+	}
+}
+
+func TestClientSkipRejectsPlayerOutOfTurn(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	_ = mustJoin(t, r)
+	player2 := mustJoin(t, r)
+	err := player2.Skip(context.Background())
+	if !errors.Is(err, ErrOutOfTurn) {
+		t.Fatalf("expected ErrOutOfTurn, got %v", err)
+	}
+}

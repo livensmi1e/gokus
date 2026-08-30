@@ -11,4 +11,5 @@ type State struct {
 	PiecesLeft         map[blokus.Occupant][]int
 	SquaresLeft        map[blokus.Occupant]int
 	CurrentPieceShapes map[int][]blokus.Coordinate
+	GameOver           bool
 }
