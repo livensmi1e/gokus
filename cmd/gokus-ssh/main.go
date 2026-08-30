@@ -69,6 +69,22 @@ func newTeaHandler(registry *room.Registry) bubbletea.Handler {
 			wish.Fatalln(sess, "could not join room:", err)
 			return nil, nil
 		}
+		go func() {
+			<-sess.Context().Done()
+			cleanupCtx, cancel := context.WithTimeout(
+				context.Background(),
+				5*time.Second,
+			)
+			defer cancel()
+			err := client.Leave(cleanupCtx)
+			if err != nil && !errors.Is(err, room.ErrClosed) {
+				log.Printf(
+					"leave room %q: %v",
+					roomID,
+					err,
+				)
+			}
+		}()
 		return tui.NewRemoteModel(client), nil
 	}
 }

@@ -14,7 +14,7 @@ Gokus is a small terminal Blokus Duo game.
 Pruning in Blokus Duo](https://informatika.stei.itb.ac.id/~rinaldi.munir/Stmik/2024-2025/Makalah2025/Makalah-IF2211-Strategi-Algoritma-2025%20(99).pdf)
 
 ### Todo
-- SSH server for remote play
+- [x] SSH server for remote play
 - Detect game over and show winner
 - AI opponent?
 
