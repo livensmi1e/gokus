@@ -48,20 +48,16 @@ func placePieceCmd(client *room.Client, pieceID int, at blokus.Coordinate) tea.C
 var _ tea.Model = &RemoteModel{}
 
 type RemoteModel struct {
-	client *room.Client
-	state  room.State
-
-	styles Styles
-
-	cursorX int
-	cursorY int
-
+	client           *room.Client
+	state            room.State
+	styles           Styles
+	cursorX          int
+	cursorY          int
 	selectedPieceIdx int
 	placing          bool
 	status           string
-
-	width  int
-	height int
+	width            int
+	height           int
 }
 
 func NewRemoteModel(client *room.Client) *RemoteModel {
@@ -228,6 +224,24 @@ func (m *RemoteModel) cycleSelectedPiece(delta int) {
 	}
 	m.selectedPieceIdx = (m.selectedPieceIdx + delta + len(pieces)) % len(pieces)
 }
+
+// func (m *RemoteModel) rotateSelectedPiece() {
+// 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
+// 	if len(pieces) == 0 {
+// 		return
+// 	}
+// 	idx := min(m.selectedPieceIdx, len(pieces)-1)
+// 	m.game.RotatePiece(pieces[idx])
+// }
+
+// func (m *RemoteModel) flipSelectedPiece() {
+// 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
+// 	if len(pieces) == 0 {
+// 		return
+// 	}
+// 	idx := min(m.selectedPieceIdx, len(pieces)-1)
+// 	m.game.FlipPiece(pieces[idx])
+// }
 
 func (m *RemoteModel) selectedPieceID() (int, bool) {
 	if m.client == nil {

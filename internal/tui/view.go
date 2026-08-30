@@ -10,16 +10,13 @@ import (
 )
 
 type viewData struct {
-	turnLabel string
-
+	turnLabel  string
 	leftPanel  string
 	boardPanel string
 	rightPanel string
-
-	status string
-
-	width  int
-	height int
+	status     string
+	width      int
+	height     int
 }
 
 func renderView(styles Styles, data viewData) tea.View {
@@ -104,9 +101,6 @@ func renderPlayerPanel(styles Styles, data playerPanelViewData) string {
 		_, available := availablePieces[pieceID]
 		active := data.hasActivePieceID && pieceID == data.activePieceID
 		cards = append(cards, renderPieceCard(styles, data.player, pieceID, active, !available))
-	}
-	if len(cards) == 0 {
-		cards = []string{styles.Subtle.Render("No pieces left")}
 	}
 	piecesGrid := joinAsColumns(cards, pieceCols, pieceCardWidth, pieceColGap)
 	titleStyle := styles.Title

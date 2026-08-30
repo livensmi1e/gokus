@@ -31,6 +31,13 @@ func (c *Client) Place(
 	return c.room.place(ctx, c.player, pieceID, at)
 }
 
+func (c *Client) Rotate(
+	ctx context.Context,
+	pieceID int,
+) error {
+	return c.room.rotate(ctx, c.player, pieceID)
+}
+
 func (c *Client) State(ctx context.Context) (State, error) {
 	return c.room.state(ctx)
 }

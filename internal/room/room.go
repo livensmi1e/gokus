@@ -12,6 +12,7 @@ var (
 	ErrFull               = errors.New("room full")
 	ErrOutOfTurn          = errors.New("out of turn")
 	ErrWaitingForOpponent = errors.New("waiting for opponent")
+	ErrPieceUnavailable   = errors.New("piece unavailable")
 )
 
 type request interface {
@@ -48,6 +49,14 @@ type leaveRequest struct{}
 
 func (*leaveRequest) isRequest() {}
 
+type rotateRequest struct {
+	player  blokus.Occupant
+	pieceID int
+	reply   chan error
+}
+
+func (*rotateRequest) isRequest() {}
+
 type Room struct {
 	requests chan request
 
@@ -76,6 +85,15 @@ func (r *Room) run(ctx context.Context) {
 		close(r.done)
 	}()
 	currentState := func() State {
+		currentPlayer := game.CurrentPlayer()
+		piecesLeft := game.PiecesLeft(currentPlayer)
+		currentPieceShapes := make(
+			map[int][]blokus.Coordinate,
+			len(piecesLeft),
+		)
+		for _, pieceID := range piecesLeft {
+			currentPieceShapes[pieceID] = game.GetCurrentPieceShape(pieceID)
+		}
 		return State{
 			Board:         game.Board(),
 			CurrentPlayer: game.CurrentPlayer(),
@@ -88,6 +106,7 @@ func (r *Room) run(ctx context.Context) {
 				blokus.Player1: game.Score(blokus.Player1),
 				blokus.Player2: game.Score(blokus.Player2),
 			},
+			CurrentPieceShapes: currentPieceShapes,
 		}
 	}
 	for {
@@ -105,6 +124,10 @@ func (r *Room) run(ctx context.Context) {
 					req.reply <- ErrOutOfTurn
 					continue
 				}
+				if !game.HasPiece(req.player, req.pieceID) {
+					req.reply <- ErrPieceUnavailable
+					continue
+				}
 				if game.PlacePiece(req.pieceID, req.at) {
 					for _, client := range clients {
 						publishLatest(client.updates, currentState())
@@ -113,6 +136,24 @@ func (r *Room) run(ctx context.Context) {
 					continue
 				}
 				req.reply <- ErrInvalidMove
+			case *rotateRequest:
+				if len(clients) < 2 {
+					req.reply <- ErrWaitingForOpponent
+					continue
+				}
+				if req.player != game.CurrentPlayer() {
+					req.reply <- ErrOutOfTurn
+					continue
+				}
+				if !game.HasPiece(req.player, req.pieceID) {
+					req.reply <- ErrPieceUnavailable
+					continue
+				}
+				game.RotatePiece(req.pieceID)
+				for _, client := range clients {
+					publishLatest(client.updates, currentState())
+				}
+				req.reply <- nil
 			case *joinRequest:
 				if len(clients) >= 2 {
 					req.reply <- joinResult{err: ErrFull}
@@ -174,6 +215,26 @@ func (r *Room) place(
 	}
 	// receive reply
 	// always wait the operation to be completed
+	return <-reply
+}
+
+func (r *Room) rotate(ctx context.Context, player blokus.Occupant, pieceID int) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	reply := make(chan error, 1)
+	req := &rotateRequest{
+		player:  player,
+		pieceID: pieceID,
+		reply:   reply,
+	}
+	select {
+	case r.requests <- req:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.done:
+		return ErrClosed
+	}
 	return <-reply
 }
 
