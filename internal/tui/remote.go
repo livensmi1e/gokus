@@ -21,6 +21,11 @@ type placeResultMsg struct {
 	err     error
 }
 
+type rotateResultMsg struct {
+	pieceID int
+	err     error
+}
+
 func waitForRoomState(updates <-chan room.State) tea.Cmd {
 	return func() tea.Msg {
 		state, ok := <-updates
@@ -45,6 +50,19 @@ func placePieceCmd(client *room.Client, pieceID int, at blokus.Coordinate) tea.C
 	}
 }
 
+func rotatePieceCmd(client *room.Client, pieceID int) tea.Cmd {
+	return func() tea.Msg {
+		err := client.Rotate(
+			context.Background(),
+			pieceID,
+		)
+		return rotateResultMsg{
+			pieceID: pieceID,
+			err:     err,
+		}
+	}
+}
+
 var _ tea.Model = &RemoteModel{}
 
 type RemoteModel struct {
@@ -54,7 +72,7 @@ type RemoteModel struct {
 	cursorX          int
 	cursorY          int
 	selectedPieceIdx int
-	placing          bool
+	cmdPending       bool
 	status           string
 	width            int
 	height           int
@@ -98,7 +116,7 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "shift+tab":
 			m.cycleSelectedPiece(-1)
 		case "enter":
-			if m.placing {
+			if m.cmdPending {
 				return m, nil
 			}
 			pieceID, ok := m.selectedPieceID()
@@ -107,11 +125,21 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			at := blokus.NewCoordinate(m.cursorX, m.cursorY)
-			m.placing = true
+			m.cmdPending = true
 			m.status = "Placing piece..."
 			return m, placePieceCmd(m.client, pieceID, at)
-			// case "r":
-			// 	m.rotateSelectedPiece()
+		case "r":
+			if m.cmdPending {
+				return m, nil
+			}
+			pieceID, ok := m.selectedPieceID()
+			if !ok {
+				m.status = "No pieces left."
+				return m, nil
+			}
+			m.cmdPending = true
+			m.status = "Rotating piece..."
+			return m, rotatePieceCmd(m.client, pieceID)
 			// case "f":
 			// 	m.flipSelectedPiece()
 			// case "s":
@@ -136,7 +164,7 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, waitForRoomState(m.client.Updates())
 	case placeResultMsg:
-		m.placing = false
+		m.cmdPending = false
 		switch {
 		case msg.err == nil:
 			m.selectedPieceIdx = 0
@@ -155,6 +183,31 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			m.status = fmt.Sprintf(
 				"Could not place piece: %v",
+				msg.err,
+			)
+		}
+		return m, nil
+	case rotateResultMsg:
+		m.cmdPending = false
+		switch {
+		case msg.err == nil:
+			m.status = fmt.Sprintf(
+				"Rotated piece %d.",
+				msg.pieceID,
+			)
+		case errors.Is(msg.err, room.ErrWaitingForOpponent):
+			m.status = "Waiting for opponent."
+		case errors.Is(msg.err, room.ErrOutOfTurn):
+			m.status = "It is not your turn."
+		case errors.Is(msg.err, room.ErrPieceUnavailable):
+			m.status = "Piece is no longer available."
+		case errors.Is(msg.err, room.ErrInvalidMove):
+			m.status = "Invalid move at current position."
+		case errors.Is(msg.err, room.ErrClosed):
+			m.status = "Room closed."
+		default:
+			m.status = fmt.Sprintf(
+				"Could not rotate piece: %v",
 				msg.err,
 			)
 		}
@@ -191,7 +244,7 @@ func (m *RemoteModel) turnLabel() string {
 func (m *RemoteModel) renderBoardPanel() string {
 	return renderBoard(m.styles, boardViewData{
 		board:      m.state.Board,
-		ghostCells: nil,
+		ghostCells: m.selectedPieceGhostCells(),
 		cursor:     blokus.NewCoordinate(m.cursorX, m.cursorY),
 	})
 }
@@ -242,6 +295,33 @@ func (m *RemoteModel) cycleSelectedPiece(delta int) {
 // 	idx := min(m.selectedPieceIdx, len(pieces)-1)
 // 	m.game.FlipPiece(pieces[idx])
 // }
+
+func (m *RemoteModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
+	ghostCells := make(map[blokus.Coordinate]struct{})
+	if m.client == nil {
+		return ghostCells
+	}
+	if m.client.Player() != m.state.CurrentPlayer {
+		return ghostCells
+	}
+	pieceID, ok := m.selectedPieceID()
+	if !ok {
+		return ghostCells
+	}
+	shape, ok := m.state.CurrentPieceShapes[pieceID]
+	if !ok {
+		return ghostCells
+	}
+	for _, c := range shape {
+		x := m.cursorX + c.X()
+		y := m.cursorY + c.Y()
+		if x < 0 || x >= blokus.DUO_BOARD_SIZE || y < 0 || y >= blokus.DUO_BOARD_SIZE {
+			continue
+		}
+		ghostCells[blokus.NewCoordinate(x, y)] = struct{}{}
+	}
+	return ghostCells
+}
 
 func (m *RemoteModel) selectedPieceID() (int, bool) {
 	if m.client == nil {
