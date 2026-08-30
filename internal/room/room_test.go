@@ -473,12 +473,12 @@ func TestClientFlipUpdatesCurrentPieceShape(t *testing.T) {
 	defer r.Close()
 	client1 := mustJoin(t, r)
 	_ = mustJoin(t, r)
-	err := client1.Rotate(
+	err := client1.Flip(
 		context.Background(),
 		3,
 	)
 	if err != nil {
-		t.Fatalf("rotate piece: %v", err)
+		t.Fatalf("flip piece: %v", err)
 	}
 	state, err := client1.State(context.Background())
 	if err != nil {
@@ -492,7 +492,7 @@ func TestClientFlipUpdatesCurrentPieceShape(t *testing.T) {
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf(
-			"expected rotated shape %v, got %v",
+			"expected flipped shape %v, got %v",
 			want,
 			got,
 		)
