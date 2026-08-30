@@ -38,6 +38,13 @@ func (c *Client) Rotate(
 	return c.room.rotate(ctx, c.player, pieceID)
 }
 
+func (c *Client) Flip(
+	ctx context.Context,
+	pieceID int,
+) error {
+	return c.room.flip(ctx, c.player, pieceID)
+}
+
 func (c *Client) State(ctx context.Context) (State, error) {
 	return c.room.state(ctx)
 }

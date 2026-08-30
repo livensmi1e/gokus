@@ -57,6 +57,14 @@ type rotateRequest struct {
 
 func (*rotateRequest) isRequest() {}
 
+type flipRequest struct {
+	player  blokus.Occupant
+	pieceID int
+	reply   chan error
+}
+
+func (*flipRequest) isRequest() {}
+
 type Room struct {
 	requests chan request
 
@@ -154,6 +162,24 @@ func (r *Room) run(ctx context.Context) {
 					publishLatest(client.updates, currentState())
 				}
 				req.reply <- nil
+			case *flipRequest:
+				if len(clients) < 2 {
+					req.reply <- ErrWaitingForOpponent
+					continue
+				}
+				if req.player != game.CurrentPlayer() {
+					req.reply <- ErrOutOfTurn
+					continue
+				}
+				if !game.HasPiece(req.player, req.pieceID) {
+					req.reply <- ErrPieceUnavailable
+					continue
+				}
+				game.FlipPiece(req.pieceID)
+				for _, client := range clients {
+					publishLatest(client.updates, currentState())
+				}
+				req.reply <- nil
 			case *joinRequest:
 				if len(clients) >= 2 {
 					req.reply <- joinResult{err: ErrFull}
@@ -224,6 +250,26 @@ func (r *Room) rotate(ctx context.Context, player blokus.Occupant, pieceID int) 
 	}
 	reply := make(chan error, 1)
 	req := &rotateRequest{
+		player:  player,
+		pieceID: pieceID,
+		reply:   reply,
+	}
+	select {
+	case r.requests <- req:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-r.done:
+		return ErrClosed
+	}
+	return <-reply
+}
+
+func (r *Room) flip(ctx context.Context, player blokus.Occupant, pieceID int) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	reply := make(chan error, 1)
+	req := &flipRequest{
 		player:  player,
 		pieceID: pieceID,
 		reply:   reply,

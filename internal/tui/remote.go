@@ -26,6 +26,11 @@ type rotateResultMsg struct {
 	err     error
 }
 
+type flipResultMsg struct {
+	pieceID int
+	err     error
+}
+
 func waitForRoomState(updates <-chan room.State) tea.Cmd {
 	return func() tea.Msg {
 		state, ok := <-updates
@@ -57,6 +62,19 @@ func rotatePieceCmd(client *room.Client, pieceID int) tea.Cmd {
 			pieceID,
 		)
 		return rotateResultMsg{
+			pieceID: pieceID,
+			err:     err,
+		}
+	}
+}
+
+func flipPieceCmd(client *room.Client, pieceID int) tea.Cmd {
+	return func() tea.Msg {
+		err := client.Flip(
+			context.Background(),
+			pieceID,
+		)
+		return flipResultMsg{
 			pieceID: pieceID,
 			err:     err,
 		}
@@ -140,8 +158,18 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cmdPending = true
 			m.status = "Rotating piece..."
 			return m, rotatePieceCmd(m.client, pieceID)
-			// case "f":
-			// 	m.flipSelectedPiece()
+		case "f":
+			if m.cmdPending {
+				return m, nil
+			}
+			pieceID, ok := m.selectedPieceID()
+			if !ok {
+				m.status = "No pieces left."
+				return m, nil
+			}
+			m.cmdPending = true
+			m.status = "Flipping piece..."
+			return m, flipPieceCmd(m.client, pieceID)
 			// case "s":
 			// 	m.game.SkipTurn()
 			// 	m.selectedPieceIDx = 0
@@ -212,6 +240,31 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		return m, nil
+	case flipResultMsg:
+		m.cmdPending = false
+		switch {
+		case msg.err == nil:
+			m.status = fmt.Sprintf(
+				"Flipped piece %d.",
+				msg.pieceID,
+			)
+		case errors.Is(msg.err, room.ErrWaitingForOpponent):
+			m.status = "Waiting for opponent."
+		case errors.Is(msg.err, room.ErrOutOfTurn):
+			m.status = "It is not your turn."
+		case errors.Is(msg.err, room.ErrPieceUnavailable):
+			m.status = "Piece is no longer available."
+		case errors.Is(msg.err, room.ErrInvalidMove):
+			m.status = "Invalid move at current position."
+		case errors.Is(msg.err, room.ErrClosed):
+			m.status = "Room closed."
+		default:
+			m.status = fmt.Sprintf(
+				"Could not flip piece: %v",
+				msg.err,
+			)
+		}
+		return m, nil
 	case roomClosedMsg:
 		m.status = "Room closed."
 		return m, tea.Quit
@@ -277,24 +330,6 @@ func (m *RemoteModel) cycleSelectedPiece(delta int) {
 	}
 	m.selectedPieceIdx = (m.selectedPieceIdx + delta + len(pieces)) % len(pieces)
 }
-
-// func (m *RemoteModel) rotateSelectedPiece() {
-// 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
-// 	if len(pieces) == 0 {
-// 		return
-// 	}
-// 	idx := min(m.selectedPieceIdx, len(pieces)-1)
-// 	m.game.RotatePiece(pieces[idx])
-// }
-
-// func (m *RemoteModel) flipSelectedPiece() {
-// 	pieces := m.game.PiecesLeft(m.game.CurrentPlayer())
-// 	if len(pieces) == 0 {
-// 		return
-// 	}
-// 	idx := min(m.selectedPieceIdx, len(pieces)-1)
-// 	m.game.FlipPiece(pieces[idx])
-// }
 
 func (m *RemoteModel) selectedPieceGhostCells() map[blokus.Coordinate]struct{} {
 	ghostCells := make(map[blokus.Coordinate]struct{})

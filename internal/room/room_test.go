@@ -467,3 +467,34 @@ func TestClientRotateUpdatesCurrentPieceShape(t *testing.T) {
 		)
 	}
 }
+
+func TestClientFlipUpdatesCurrentPieceShape(t *testing.T) {
+	r := New(context.Background())
+	defer r.Close()
+	client1 := mustJoin(t, r)
+	_ = mustJoin(t, r)
+	err := client1.Rotate(
+		context.Background(),
+		3,
+	)
+	if err != nil {
+		t.Fatalf("rotate piece: %v", err)
+	}
+	state, err := client1.State(context.Background())
+	if err != nil {
+		t.Fatalf("get state: %v", err)
+	}
+	got := state.CurrentPieceShapes[3]
+	want := []blokus.Coordinate{
+		blokus.NewCoordinate(0, 0),
+		blokus.NewCoordinate(1, 0),
+		blokus.NewCoordinate(1, 1),
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf(
+			"expected rotated shape %v, got %v",
+			want,
+			got,
+		)
+	}
+}
