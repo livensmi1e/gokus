@@ -28,6 +28,9 @@ func NewDuoGame() *DuoGame {
 // This is an immutable method
 func (g *DuoGame) CanPlacePiece(id int, c Coordinate) bool {
 	player := g.players[g.currentPlayer]
+	if player.stopped {
+		return false
+	}
 	if !player.hasPiece(id) {
 		return false
 	}
@@ -221,9 +224,12 @@ func (g *DuoGame) Score(player Occupant) int {
 }
 
 func (g *DuoGame) turnPlayer() {
+	nextPlayer := Player1
 	if g.currentPlayer == Player1 {
-		g.currentPlayer = Player2
-	} else {
-		g.currentPlayer = Player1
+		nextPlayer = Player2
 	}
+	if g.players[nextPlayer].stopped {
+		return
+	}
+	g.currentPlayer = nextPlayer
 }

@@ -210,3 +210,28 @@ func TestStartingPoints(t *testing.T) {
 		t.Fatal("should be immutable")
 	}
 }
+
+func TestTurnStaysWithActivePlayerWhenOpponentStopped(
+	t *testing.T,
+) {
+	g := NewDuoGame()
+	// Player 1 stops; turn moves to Player 2.
+	g.SkipTurn()
+	if g.CurrentPlayer() != Player2 {
+		t.Fatalf(
+			"expected Player2 after Player1 stops, got %v",
+			g.CurrentPlayer(),
+		)
+	}
+	// Player 2 makes a valid first move.
+	if !g.PlacePiece(0, STARTING_POINTS[1]) {
+		t.Fatal("expected Player2 first move to succeed")
+	}
+	// Player 1 is stopped, so Player 2 keeps the turn.
+	if g.CurrentPlayer() != Player2 {
+		t.Fatalf(
+			"expected active Player2 to keep turn, got %v",
+			g.CurrentPlayer(),
+		)
+	}
+}

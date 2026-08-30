@@ -174,11 +174,6 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// 	m.game.SkipTurn()
 			// 	m.selectedPieceIDx = 0
 			// 	m.status = "Turn skipped."
-			// case "n":
-			// 	m.game = blokus.NewDuoGame()
-			// 	m.cursorX, m.cursorY = 0, 0
-			// 	m.selectedPieceIDx = 0
-			// 	m.status = "New game started. Enjoy!"
 		}
 	case roomStateMsg:
 		previousPlayerCount := m.state.PlayerCount
@@ -204,8 +199,6 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "Waiting for opponent."
 		case errors.Is(msg.err, room.ErrOutOfTurn):
 			m.status = "It is not your turn."
-		case errors.Is(msg.err, room.ErrInvalidMove):
-			m.status = "Invalid move at current position."
 		case errors.Is(msg.err, room.ErrClosed):
 			m.status = "Room closed."
 		default:
@@ -229,8 +222,6 @@ func (m *RemoteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "It is not your turn."
 		case errors.Is(msg.err, room.ErrPieceUnavailable):
 			m.status = "Piece is no longer available."
-		case errors.Is(msg.err, room.ErrInvalidMove):
-			m.status = "Invalid move at current position."
 		case errors.Is(msg.err, room.ErrClosed):
 			m.status = "Room closed."
 		default:
@@ -366,6 +357,6 @@ func (m *RemoteModel) selectedPieceID() (int, bool) {
 	if len(pieces) == 0 {
 		return 0, false
 	}
-	m.selectedPieceIdx = min(m.selectedPieceIdx, len(pieces)-1)
-	return pieces[m.selectedPieceIdx], true
+	idx := min(m.selectedPieceIdx, len(pieces)-1)
+	return pieces[idx], true
 }
