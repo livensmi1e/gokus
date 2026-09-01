@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	address     = "localhost:23234"
-	hostKeyPath = ".ssh/gokus_ed25519"
+	defaultAddress     = "localhost:23234"
+	defaultHostKeyPath = ".ssh/gokus_ed25519"
 )
 
 func main() {
@@ -32,6 +32,9 @@ func main() {
 }
 
 func run() error {
+	address := envOrDefault("GOKUS_SSH_ADDRESS", defaultAddress)
+	hostKeyPath := envOrDefault("GOKUS_SSH_HOST_KEY_PATH", defaultHostKeyPath)
+
 	registry := room.NewRegistry()
 	defer registry.Close()
 	server, err := wish.NewServer(
@@ -59,6 +62,13 @@ func run() error {
 		return fmt.Errorf("could not stop server: %w", err)
 	}
 	return nil
+}
+
+func envOrDefault(name, fallback string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func newTeaHandler(registry *room.Registry) bubbletea.Handler {

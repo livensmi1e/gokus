@@ -1,0 +1,13 @@
+services:
+  gokus-ssh:
+    image: ghcr.io/livensmi1e/gokus:latest
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "23234:23234"
+    volumes:
+      - gokus-ssh-data:/data
+
+volumes:
+  gokus-ssh-data:

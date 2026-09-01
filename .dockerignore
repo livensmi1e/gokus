@@ -1,0 +1,11 @@
+.git
+.github
+.gitignore
+.ssh
+bin
+coverage*
+Dockerfile*
+compose*.yaml
+compose*.yml
+*.md
+*.png
